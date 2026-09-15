@@ -1,0 +1,11 @@
+node_modules/
+.output/
+.nuxt/
+dist/
+*.log
+.env
+
+# Serena: кеш символов и логи — машинные, в истории не нужны.
+# Память (.serena/memories) наоборот версионируется: это знание о проекте.
+.serena/cache/
+.serena/logs/

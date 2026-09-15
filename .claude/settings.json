@@ -1,0 +1,49 @@
+{
+  "//": "⚠️ disableArtifact — механика правила 0 из CLAUDE.md, а не предпочтение: проект личный на корпоративном аккаунте, опубликованный артефакт живёт на инфраструктуре, привязанной к нему. Правило в тексте уже один раз не сработало — субагент опубликовал артефакт. Флаг закрывает это на уровне настроек.",
+  "disableArtifact": true,
+
+  "enabledMcpjsonServers": ["serena"],
+
+  "permissions": {
+    "//": "allow — только чтение и проверки, то есть то, что безопасно повторять. Правки и git остаются с подтверждением: репозиторий чужой истории не прощает.",
+    "allow": [
+      "Bash(npm run typecheck:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run arch:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx depcruise:*)",
+      "Bash(make check:*)",
+      "Bash(make typecheck:*)",
+      "Bash(make test:*)",
+      "Bash(make arch:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "mcp__serena__*"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/backups/**)",
+      "Bash(rm -rf:*)",
+      "Bash(pkill:*)"
+    ]
+  },
+
+  "hooks": {
+    "//": "SessionStart печатает то, что иначе выясняется ошибкой: схема БД живёт в соседнем репозитории, а pkill -f убивает саму сессию агента.",
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '⚠️ rental-backend: схема БД и миграции — в ../rental/ (drizzle/), сюда НЕ дублируются. Postgres поднимается оттуда: docker compose up -d postgres, порт 55432. ⚠️ Никогда не использовать pkill -f — шаблон совпадает с оболочкой самого агента и убивает сессию; останавливать по PID.'"
+          }
+        ]
+      }
+    ]
+  },
+
+  "language": "russian"
+}

@@ -1,0 +1,106 @@
+/**
+ * Сборка HTTP-приложения.
+ *
+ * ⚠️ Фабрика, а не модуль с побочными эффектами при импорте. Тест
+ * поднимает своё приложение со своими deps; синглтон на уровне модуля
+ * сделал бы это невозможным и заставил бы тесты делить состояние.
+ */
+import Fastify from 'fastify'
+import cookie from '@fastify/cookie'
+import type { Deps } from '../kernel/deps'
+import type { Config } from '../kernel/config'
+import type { App } from './types'
+import { registerErrorHandler } from './errors'
+import { registerModules } from '../modules/registry'
+
+export interface AppOptions {
+  config: Config
+  deps: Deps
+}
+
+export function createApp({ config, deps }: AppOptions): App {
+  const app = Fastify({
+    loggerInstance: deps.logger,
+    // ⚠️ Свой correlation_id, если он пришёл от вызывающего: цепочка
+    // «фронт → API → воркер → отправка» собирается одним grep только
+    // когда идентификатор сквозной, а не рождается заново на каждом шаге.
+    genReqId: (req) => {
+      const header = req.headers['x-correlation-id']
+      return typeof header === 'string' && header ? header : crypto.randomUUID()
+    },
+    // ⚠️ Доверять заголовкам прокси можно только за своим балансировщиком.
+    // Без этого req.ip — адрес Caddy, и ограничение частоты по IP
+    // ограничивает балансировщик, а не клиента.
+    trustProxy: config.isProduction,
+    // Тело запроса: каталог и состав заказа бывают крупными, но не такими.
+    bodyLimit: 1_048_576,
+  })
+
+  app.register(cookie)
+
+  // ⚠️ CORS появляется только при выносе бэка: пока код жил внутри Nuxt,
+  // фронт и API были одним origin. Разрешаем ровно перечисленные origin
+  // и credentials — сессия сотрудника ездит в cookie.
+  app.addHook('onRequest', async (req, reply) => {
+    const origin = req.headers.origin
+    if (origin && config.corsOrigins.includes(origin)) {
+      reply.header('access-control-allow-origin', origin)
+      reply.header('access-control-allow-credentials', 'true')
+      reply.header('vary', 'Origin')
+    }
+    if (req.method === 'OPTIONS') {
+      reply.header('access-control-allow-methods', 'GET,POST,PATCH,DELETE,OPTIONS')
+      reply.header('access-control-allow-headers', 'content-type,idempotency-key,x-widget-version,x-correlation-id')
+      reply.header('access-control-max-age', '86400')
+      reply.status(204).send()
+    }
+  })
+
+  // Возвращаем correlation_id клиенту: без него поддержка не может
+  // связать жалобу «не работает» с записью в журнале.
+  app.addHook('onSend', async (req, reply) => {
+    reply.header('x-correlation-id', req.id)
+  })
+
+  registerErrorHandler(app)
+
+  /**
+   * Тот же API дополнительно на префиксе `/api`.
+   *
+   * ⚠️ Нужен ради переключения фронта ОДНОЙ переменной окружения.
+   * В браузере 84 вызова написаны как `/api/v1/…` — так их формировал
+   * Nuxt, где `server/api/` и есть маршрут. Переписать их значит
+   * тронуть 39 файлов ради косметики и потерять возможность откатиться
+   * той же переменной: старый бэк отвечает только на `/api/v1/…`.
+   *
+   * ⚠️ Оба префикса ведут в ОДИН набор обработчиков — это псевдоним,
+   * а не вторая копия API. Убрать после завершения переезда, вместе
+   * с удалением `server/` из Nuxt.
+   */
+  app.register(async (scoped) => {
+    registerModules(scoped as unknown as App, deps)
+  }, { prefix: '/api' })
+
+  /**
+   * Health check — проверяет СОЕДИНЕНИЕ С БД, а не отвечает 200
+   * безусловно.
+   *
+   * ⚠️ Смысл именно в этом: экземпляр, потерявший базу, обязан выпасть
+   * из балансировки. Маршрут, который всегда отвечает «жив», оставляет
+   * в ротации реплику, отдающую ошибки на каждый запрос.
+   */
+  app.get('/health', async (req, reply) => {
+    try {
+      await deps.db.unscoped('SELECT 1')
+      return { status: 'ok' }
+    } catch (err) {
+      req.log.error({ err }, 'health: база недоступна')
+      reply.status(503)
+      return { status: 'degraded' }
+    }
+  })
+
+  registerModules(app, deps)
+
+  return app
+}
