@@ -10,12 +10,9 @@ import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
 import { parse } from '~/transport/validate'
 import { apiError } from '~/kernel/errors'
-import { requireSession } from '~/kernel/session'
+import { requireSession, SESSION_COOKIE } from '~/kernel/session'
 import { login, logout, switchByPin } from '~/domain/core/auth'
 import { getMe } from '../service/me.service'
-
-/** ⚠️ Имя совпадает с Nuxt-версией: иначе вход слетит при переключении бэка. */
-export const SESSION_COOKIE = 'rental_session'
 
 const LoginBody = v.object({
   email: v.pipe(v.string(), v.email()),

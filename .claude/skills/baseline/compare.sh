@@ -26,7 +26,28 @@ compare.sh <команда> [аргументы]
 USAGE
 }
 
-norm() { python3 -m json.tool --sort-keys "$1"; }
+# ⚠️ Конверт ошибки у h3 и у нового сервиса РАЗНЫЙ, и это намеренно:
+# h3 выносил клиенту `error: true`, statusMessage и СТЕК с абсолютными
+# путями файлов сервера. Сравнивать их дословно значит держать сверку
+# вечно красной на ответах-ошибках. Поэтому оба конверта приводятся к
+# одному виду — { error: { code, message } }, — и сверяется то, что
+# действительно является контрактом: код ошибки и текст человеку.
+norm() {
+  python3 - "$1" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+if isinstance(d, dict) and d.get('error') is True:
+    inner = (d.get('data') or {}).get('error') or {}
+    d = {'error': {'code': inner.get('code'),
+                   'message': inner.get('message') or d.get('message')}}
+    if inner.get('details'):
+        d['error']['details'] = inner['details']
+elif isinstance(d, dict) and isinstance(d.get('error'), dict):
+    e = d['error']
+    d = {'error': {k: e[k] for k in ('code', 'message', 'details') if k in e}}
+print(json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False))
+PYEOF
+}
 
 # ⚠️ Сессия нужна для 30 эндпоинтов из 38: админка и стойка. Без неё
 # сверка проверяла бы только публичный контур, то есть восьмую часть.

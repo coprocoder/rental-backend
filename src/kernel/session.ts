@@ -20,6 +20,19 @@ import type { Db } from './db'
 
 export type { Session, Permission }
 
+/**
+ * Имя cookie сессии сотрудника.
+ *
+ * ⚠️ Живёт в kernel, а не в модуле `access`: его читает КАЖДЫЙ
+ * контроллер, и импорт из чужого модуля делал бы `access` зависимостью
+ * всех остальных — а его собственный контроллер получал бы цикл через
+ * свой же фасад (поймано правилом no-module-cycles).
+ *
+ * ⚠️ Значение совпадает с Nuxt-версией: иначе вход слетит при
+ * переключении бэка одной переменной окружения.
+ */
+export const SESSION_COOKIE = 'rental_session'
+
 export async function requireSession(token: string | undefined): Promise<Session> {
   if (!token) throw apiError('FORBIDDEN', 'Нужен вход')
 

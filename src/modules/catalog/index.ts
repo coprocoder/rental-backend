@@ -17,3 +17,4 @@ export type {
 } from './catalog.types'
 export { getCatalog } from './service/catalog.service'
 export { registerCatalogRoutes } from './http/catalog.controller'
+export { registerCatalogAdminRoutes } from './http/admin.controller'

@@ -16,3 +16,4 @@
 export type { Limits, LimitViolation } from './pricing.types'
 export { DEFAULT_LIMITS, allowedShare, checkPoolShare } from './domain/limits'
 export { getLimits } from './database/limits.repository'
+export { registerPricingAdminRoutes } from './http/admin.controller'
