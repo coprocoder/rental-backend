@@ -1,9 +1,11 @@
 # CLAUDE.md — rental-backend
 
-Repository of **plans** for the extracted backend of `../rental/`. No code yet.
+The extracted backend of `../rental/`: a standalone Node service (Fastify + Postgres).
+**Migration in progress** — the Nuxt app still serves production; this service is being
+built endpoint by endpoint against a captured baseline.
 
-Instructions in English because this file loads on every call; **plan documents, comments
-and TODO stay Russian**.
+Instructions in English because this file loads on every call; **plans, comments, docs and
+TODO stay Russian**.
 
 ## ⚠️ Rule 0 — privacy
 
@@ -17,38 +19,86 @@ outside.**
 ⚠️ **Subagents do NOT inherit this.** Put the artifact ban in every subagent prompt as
 explicit text. It has already failed once.
 
-## What this repository is
+## Layers
 
-Design work for moving the backend out of the Nuxt app into a standalone Node service.
-Plans live in `plans/`, numbered in reading order — see `README.md`.
+Dependencies point down only, enforced by `npm run arch` — nine rules, and they are the
+reason the structure survives contact with deadlines.
 
-When the work starts, this becomes the service's repository and `plans/` moves to `docs/`.
+```
+transport   HTTP: маршрут, разбор запроса, код ответа, заголовки
+    ↓
+usecase     сценарий целиком  ← ЗДЕСЬ открывается транзакция, ровно один раз
+    ↓
+domain      правила: цены, наличие, подбор, переходы статусов
+    ↓
+gateway     SQL
+    ↓
+kernel      пул, тенантный контекст, часы, журнал, outbox, ошибки
+```
 
-## Rules for the plans
+`shared/` sits beside them: types and pure functions shared with the frontend, no
+dependencies of its own (`shared-is-leaf`).
 
-⚠️ **Every number is measured, not estimated.** Each figure came from a script over the
-code or a query against the database. Where a number is a forecast, it says so. The code
-changes — re-check before acting on a plan.
+⚠️ **The transaction belongs to usecase.** `domain` and `gateway` receive a ready
+`PoolClient` and never open their own. The rule exists because the Nuxt catalog read
+through six separate transactions — six independent snapshots, between which the stock
+could change.
 
-⚠️ **A plan that cannot be verified is not a plan.** Every stage has a completion signal
-somebody can demand: a green check, a matching API response, a passing test.
+⚠️ **`Ctx` carries `tenantId`, `actor`, `correlationId` — never a request object.** As soon
+as HTTP reaches usecase, the scenario stops being callable from the worker, a test, or the
+counter's future mobile app.
 
-⚠️ **Do not duplicate what `../rental/` already documents.** The code repo owns how the
-system works today (`server/CLAUDE.md`, `docs/ARCHITECTURE.md`); this repo owns where it is
-going. A copy of either becomes a lie within a month.
+## Modules
 
-⚠️ **Product reasoning belongs in `../rental-docs/`**, not here. If a plan needs a product
-decision, link to the spec rather than restating it.
+Vertical slices in `src/modules/<name>/` with `transport/ usecase/ domain/ gateway/` inside
+and **one** `<name>.public.ts` facade outside. Nine planned (`plans/01-МОДУЛИ.md`); ported
+so far: `catalog`, `pricing`.
 
-## Source of truth about the current code
+⚠️ **Write-ownership, read-freedom.** The textbook rule "each module owns its tables" was
+measured against this schema and does not hold: `category` is read by 9 areas,
+`inventory_variant` by 8. Forbidding reads turns every price calculation into a chain of
+facade calls inside one transaction — a slow way to write a `JOIN`. **Writing** is what is
+restricted: two writers means two places where a rule lives, and they diverge. `capacity`
+in `pool_day` was written from six places, and they did.
 
-`../rental/` — read it rather than trusting a plan's description of it:
+## Adding an endpoint
 
-- `server/CLAUDE.md` — the backend as it is now, six layers;
-- `docs/ARCHITECTURE.md` — why the parts fit as they do;
-- `docs/BACKEND-EXTRACTION.md` — the migration steps;
-- `docs/BACKEND-DESIGN.md` — the first architecture sketch these plans grew from;
-- `../rental-docs/docs/05-работы/TODO.md` — **the only source of truth about what is done.**
+Six steps, in `plans/03-API.md`. The short version: valibot schema at the boundary →
+route → `Ctx` → usecase → explicit response shape.
 
-⚠️ Never add a second progress summary anywhere. One already existed, drifted thirty items
-from reality, and was believed because it looked authoritative.
+⚠️ **The schema is not optional.** Fastify validates *responses*, never request bodies.
+⚠️ **Normalisation lives in the schema**, so a new endpoint cannot forget it: `+7 999…`
+and `8999…` unnormalised become two customers, and the booking limit is bypassed by
+changing format.
+⚠️ **Never return DB rows as they are** — a renamed column then breaks the frontend.
+
+## Migration rules
+
+⚠️ **Every ported endpoint is compared against the baseline byte for byte.** Baselines live
+in `../rental/baseline/`, captured from the live Nuxt stand before any change. This is how
+the price-rule defect (19.23) was found — a scenario run, not a unit test.
+
+⚠️ **Do not rewrite the domain or the tests.** 10 200 lines of domain and 322 tests move as
+they are; that is the main saving of the whole plan. Work that touches them needs a separate
+justification.
+
+⚠️ **Both implementations stay alive until the end.** Switching is one env var on the
+frontend (`NUXT_PUBLIC_API_BASE`), and so is rolling back.
+
+## Commands
+
+`make help` lists everything. `make check` is what CI runs: typecheck, test, arch.
+
+Requires Postgres from `../rental/docker-compose.yml` (port 55432) — the schema and
+migrations still live in the Nuxt repo and are **not** duplicated here.
+
+## Documentation
+
+- `plans/` — design decisions with measured numbers, in reading order (`README.md`);
+- `docs/СОСТОЯНИЕ.md` — what is ported and what is not;
+- `../rental/server/CLAUDE.md` — how the backend works *today*, inside Nuxt;
+- `../rental-docs/` — the product spec. Product reasoning belongs there, not here.
+
+⚠️ **`../rental-docs/docs/05-работы/TODO.md` is the only source of truth about what is
+done.** Never add a second progress summary: one already existed, drifted thirty items from
+reality, and was believed because it looked authoritative.

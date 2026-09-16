@@ -1,0 +1,29 @@
+# Короткие команды. `make help` — список.
+.PHONY: help install dev check typecheck test arch build worker
+
+help:  ## Показать список команд
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+install:  ## Поставить зависимости
+	npm install
+
+dev:  ## Запустить сервис с перезапуском по изменению
+	npm run dev
+
+check: typecheck test arch  ## Всё, что гоняет CI
+
+typecheck:  ## Проверить типы
+	npm run typecheck
+
+test:  ## Прогнать тесты
+	npm test
+
+arch:  ## Проверить границы слоёв и модулей
+	npm run arch
+
+build:  ## Собрать в dist/
+	npm run build
+
+worker:  ## Запустить фоновый обработчик
+	npm run worker
