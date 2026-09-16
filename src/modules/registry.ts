@@ -9,8 +9,12 @@
  */
 import type { App } from '../transport/types'
 import type { Deps } from '../kernel/deps'
+import { registerAccessRoutes } from './access'
+import { registerBookingRoutes } from './booking'
 import { registerCatalogRoutes } from './catalog'
 
 export function registerModules(app: App, deps: Deps): void {
+  registerAccessRoutes(app, deps)
+  registerBookingRoutes(app, deps)
   registerCatalogRoutes(app, deps)
 }

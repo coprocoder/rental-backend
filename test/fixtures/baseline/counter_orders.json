@@ -1,0 +1,26 @@
+{
+  "orders": [
+    {
+      "id": "5db1d10e-7676-4d18-9323-ce60a11b83c2",
+      "publicCode": "G8YYJ5",
+      "status": "awaiting_confirm",
+      "customerName": "Канон Тест",
+      "phoneTail": "2233",
+      "startsAt": "2026-09-16T03:00:00.000Z",
+      "endsAt": "2026-09-17T13:00:00.000Z",
+      "total": "400.00",
+      "lines": 1
+    },
+    {
+      "id": "34b67c18-1bc3-467a-84c1-bcd6912eeac0",
+      "publicCode": "JQ6226",
+      "status": "awaiting_confirm",
+      "customerName": "Канон Тест",
+      "phoneTail": "2233",
+      "startsAt": "2026-09-16T03:00:00.000Z",
+      "endsAt": "2026-09-17T13:00:00.000Z",
+      "total": "400.00",
+      "lines": 1
+    }
+  ]
+}

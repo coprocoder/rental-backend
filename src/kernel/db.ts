@@ -118,3 +118,28 @@ export function createDb(opts: { url: string, max?: number } ): Db {
 export function createWorkerDb(opts: { url: string, max?: number }): Db {
   return createDb({ url: opts.url, max: opts.max ?? 4 })
 }
+
+let workerPool: Pool | undefined
+
+/**
+ * Пул воркера как синглтон.
+ *
+ * ⚠️ Нужен потому, что домен переехал из Nuxt как есть, а там фоновые
+ * функции берут пул сами (`getWorkerPool`), а не получают его
+ * параметром. Переписывать 10 200 строк домена ради инверсии
+ * зависимостей — работа, которая ничего не чинит и рискует поведением;
+ * это прямо запрещено планом переезда.
+ *
+ * ⚠️ Отдельная роль `rental_worker` с BYPASSRLS: воркеры работают
+ * поперёк тенантов по определению — очередь одна на всех, просроченные
+ * брони тоже. Веб-приложение под этой ролью НЕ ходит, иначе RLS
+ * перестала бы защищать.
+ */
+export function getWorkerPool(): Pool {
+  if (!workerPool) {
+    const url = process.env.DATABASE_URL_WORKER ?? process.env.DATABASE_URL
+    if (!url) throw new Error('DATABASE_URL не задан')
+    workerPool = makePool(url, 4)
+  }
+  return workerPool
+}

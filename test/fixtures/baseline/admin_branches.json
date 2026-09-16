@@ -1,0 +1,71 @@
+{
+  "branches": [
+    {
+      "id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "name": "Свердловская 17а",
+      "address": "ул. Свердловская, 17а/3",
+      "timezone": "Asia/Krasnoyarsk",
+      "season_from_month": null,
+      "season_to_month": null,
+      "created_at": "2026-09-02T12:35:26.941Z"
+    }
+  ],
+  "schedule": [
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 0,
+      "exception_date": null,
+      "opens_at": "09:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 1,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 2,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 3,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 4,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 5,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    },
+    {
+      "branch_id": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "weekday": 6,
+      "exception_date": null,
+      "opens_at": "10:00",
+      "closes_at": "22:00",
+      "is_closed": false
+    }
+  ]
+}

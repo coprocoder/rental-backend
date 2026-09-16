@@ -1,5 +1,5 @@
 # Короткие команды. `make help` — список.
-.PHONY: help install dev check typecheck test arch baseline build worker
+.PHONY: help install dev check typecheck test arch baseline build worker migrate seed
 
 help:  ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -30,3 +30,9 @@ build:  ## Собрать в dist/
 
 worker:  ## Запустить фоновый обработчик
 	npm run worker
+
+migrate:  ## Накатить миграции: сгенерированные, затем ручной SQL
+	npm run db:migrate
+
+seed:  ## Залить демо-данные, идемпотентно
+	npm run db:seed

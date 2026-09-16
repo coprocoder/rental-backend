@@ -1,0 +1,44 @@
+{
+  "rows": [
+    {
+      "branchId": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "branchName": "Свердловская 17а",
+      "categoryId": "d4aad29c-67f3-46c7-85aa-367cb6c7439c",
+      "categoryName": "Сноуборд",
+      "mode": "percent",
+      "value": 0
+    },
+    {
+      "branchId": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "branchName": "Свердловская 17а",
+      "categoryId": "c22bfbec-3ddb-4af5-8d48-978df81d6cf5",
+      "categoryName": "Ботинки",
+      "mode": "percent",
+      "value": 0
+    },
+    {
+      "branchId": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "branchName": "Свердловская 17а",
+      "categoryId": "285f66a6-2ce9-4f7e-a214-e9d546a247cc",
+      "categoryName": "Шлем",
+      "mode": "percent",
+      "value": 0
+    },
+    {
+      "branchId": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "branchName": "Свердловская 17а",
+      "categoryId": "c964ab28-4515-4e2b-8dd3-fe695b9a33b5",
+      "categoryName": "Перчатки",
+      "mode": "percent",
+      "value": 0
+    },
+    {
+      "branchId": "6653d9bb-8494-4501-9808-fc61a4d69d7a",
+      "branchName": "Свердловская 17а",
+      "categoryId": "a0548a02-e1b0-402b-9e79-8d04e1e8f548",
+      "categoryName": "Сапборд",
+      "mode": "percent",
+      "value": 0
+    }
+  ]
+}
