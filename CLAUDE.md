@@ -94,10 +94,18 @@ migrations still live in the Nuxt repo and are **not** duplicated here.
 
 ## Documentation
 
-- `plans/` — design decisions with measured numbers, in reading order (`README.md`);
-- `docs/СОСТОЯНИЕ.md` — what is ported and what is not;
-- `../rental/server/CLAUDE.md` — how the backend works *today*, inside Nuxt;
-- `../rental-docs/` — the product spec. Product reasoning belongs there, not here.
+- **`docs/`** — how this service works. Start with `docs/архитектура.md`: layers, module
+  boundaries, request path and tenant isolation, with Mermaid diagrams. Then the guides
+  moved out of Docusaurus: `железные-правила`, `бд-и-инварианты`, `алгоритмы`, `api`,
+  `адаптеры`. `docs/СОСТОЯНИЕ.md` says what is ported and what is not.
+- **`plans/`** — design decisions for what is **still ahead**: nine modules, data growth
+  and partitioning, replicas and the pooler, migration stages, defects found.
+  ⚠️ Kept because they are not implemented: 2 modules of 9, 1 endpoint of 80, no
+  partitioning, no replicas, three found defects unfixed.
+- `src/*/CLAUDE.md` — устройство каждого каталога, загружаются сами.
+- `../rental/server/CLAUDE.md` — how the backend works *today*, inside Nuxt.
+- `../rental-docs/` — **product only**: the spec and the guides for shop owners and staff.
+  Product reasoning belongs there, technical detail here, next to the code it describes.
 
 ⚠️ **`../rental-docs/docs/05-работы/TODO.md` is the only source of truth about what is
 done.** Never add a second progress summary: one already existed, drifted thirty items from
