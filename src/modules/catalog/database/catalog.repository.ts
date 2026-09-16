@@ -134,12 +134,26 @@ export async function serviceRows(c: PoolClient, tenantId: string): Promise<Serv
  *
  * Вкладки «зима/лето» должны знать обе стороны, иначе не из чего
  * строить выбор.
+ *
+ * ⚠️ `ORDER BY` обязателен, хотя список маленький и порядок «и так
+ * выглядит стабильным». `SELECT DISTINCT` без сортировки НЕ ДАЁТ
+ * гарантии порядка: Postgres выбирает между хеш-агрегацией и
+ * сортировкой по статистике таблицы, и порядок меняется вместе с
+ * планом. Проверено на этой самой базе — те же строки приходят как
+ * `sup, snowboard, helmet…` при `enable_hashagg=on` и по алфавиту
+ * при `off`.
+ *
+ * Клиент сегодня к порядку не привязан (вкладки строятся по своему
+ * списку сезонов), но от порядка зависит СВЕРКА С ЭТАЛОНОМ — способ,
+ * которым проверяется весь переезд. Ответ, меняющийся сам по себе,
+ * делает её бесполезной: расхождение перестаёт что-либо значить.
  */
 export async function seasonRows(c: PoolClient, tenantId: string): Promise<SeasonRow[]> {
   const { rows } = await c.query<SeasonRow>(
     `SELECT DISTINCT code, season_from_month, season_to_month
      FROM category
-     WHERE tenant_id = $1 AND archived_at IS NULL`,
+     WHERE tenant_id = $1 AND archived_at IS NULL
+     ORDER BY code`,
     [tenantId],
   )
   return rows
