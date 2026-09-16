@@ -1,5 +1,5 @@
 # Короткие команды. `make help` — список.
-.PHONY: help install dev check typecheck test arch build worker
+.PHONY: help install dev check typecheck test arch baseline build worker
 
 help:  ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -21,6 +21,9 @@ test:  ## Прогнать тесты
 
 arch:  ## Проверить границы слоёв и модулей
 	npm run arch
+
+baseline:  ## Сверить ответы с эталоном старого стенда (нужны оба сервиса)
+	.claude/skills/baseline/compare.sh all
 
 build:  ## Собрать в dist/
 	npm run build

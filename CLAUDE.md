@@ -87,10 +87,37 @@ frontend (`NUXT_PUBLIC_API_BASE`), and so is rolling back.
 
 ## Commands
 
-`make help` lists everything. `make check` is what CI runs: typecheck, test, arch.
+`make help` lists everything.
+
+| Команда | Что |
+|---|---|
+| `make check` | то, что гоняет CI: типы, тесты, границы слоёв |
+| `make baseline` | сверка ответов с эталоном старого стенда |
+| `make dev` | сервис с перезапуском по изменению |
 
 Requires Postgres from `../rental/docker-compose.yml` (port 55432) — the schema and
 migrations still live in the Nuxt repo and are **not** duplicated here.
+
+⚠️ **`make check` не проверяет переезд.** Тесты доказывают, что код делает задуманное;
+`make baseline` — что он делает **то же, что делал раньше**. Для переезда важнее второе,
+и запускать его надо после каждого переехавшего эндпоинта.
+
+## Tooling
+
+| Что | Где | Зачем |
+|---|---|---|
+| `/endpoint <путь>` | `.claude/commands/` | перевезти эндпоинт: эталон → слои → сверка |
+| `baseline` | `.claude/skills/baseline/` | сверка с эталоном, код возврата годен для CI |
+| `verify` | `.claude/skills/verify/` | порядок проверок и почему именно такой |
+| serena | `.mcp.json` | навигация по символам; стартует уже с проектом |
+| память проекта | `.serena/memories/` | слои, БД и тесты, навигация, **грабли** |
+
+⚠️ **`.serena/memories/agent/pitfalls.md` читать до первой правки.** Там то, что уже
+сработало: `pkill -f` убивает сессию агента, `SELECT DISTINCT` без `ORDER BY` ломает
+сверку, контрольный тест может ничего не проверять.
+
+⚠️ **`disableArtifact: true` в `.claude/settings.json`** — механика правила 0, а не
+предпочтение. Текстовый запрет уже один раз не сработал.
 
 ## Documentation
 

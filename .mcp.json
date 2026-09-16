@@ -1,0 +1,14 @@
+{
+  "//": "Пути к бинарникам Node 20 из nvm: на хосте активен 18, и без явного пути серверы падают с CONNECTION_CLOSED.",
+  "mcpServers": {
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/oraios/serena",
+        "serena", "start-mcp-server",
+        "--context", "claude-code",
+        "--project", "/home/coprocoder/Pet/rental-backend"
+      ]
+    }
+  }
+}
