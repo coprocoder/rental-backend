@@ -14,6 +14,21 @@ import { requireSession, SESSION_COOKIE } from '~/kernel/session'
 import { login, logout, switchByPin } from '~/domain/core/auth'
 import { getMe } from '../service/me.service'
 
+/**
+ * Нужна ли cookie сессии cross-site.
+ *
+ * ⚠️ Разные ПОРТЫ одного хоста — это НЕ cross-site: порт не входит в
+ * понятие site (RFC 6265bis). Фронт на :3000 и API на :3200 для cookie
+ * остаются одним сайтом, и `SameSite=Lax` работает. Поэтому локальная
+ * разработка не требует ни `None`, ни TLS.
+ *
+ * Cross-site начинается с РАЗНЫХ ДОМЕНОВ — `app.example.com` и
+ * `api.other.com`. Там нужен `SameSite=None`, а он по стандарту
+ * обязывает `Secure`, то есть HTTPS. Включается явно переменной:
+ * угадывать по CORS_ORIGINS нельзя — он задан и при одном домене.
+ */
+const CROSS_SITE_COOKIE = process.env.CROSS_SITE_COOKIE === '1'
+
 const LoginBody = v.object({
   email: v.pipe(v.string(), v.email()),
   password: v.pipe(v.string(), v.minLength(8), v.maxLength(200)),
@@ -71,10 +86,23 @@ export function registerAccessRoutes(app: App, deps: Deps): void {
     // и только для показа демки по http.
     const insecureAllowed = process.env.ALLOW_INSECURE_COOKIE === '1'
 
+    // ⚠️ SameSite зависит от того, на одном ли origin живут фронт и API.
+    // После выноса бэкенда они РАЗНЫЕ, и при 'lax' браузер не отправит
+    // cookie обратно: вход отвечает 200, а следующий же staff/me — 403.
+    // Симптом «вход не удался» при верном пароле и рабочем API.
+    //
+    // ⚠️ 'none' требует Secure по стандарту, поэтому по HTTP он
+    // применим только вместе с ALLOW_INSECURE_COOKIE — то есть на
+    // локальной машине и демо-стенде, где TLS нет.
+    const crossSite = CROSS_SITE_COOKIE
+    const secure = crossSite
+      ? !insecureAllowed
+      : process.env.NODE_ENV === 'production' && !insecureAllowed
+
     reply.setCookie(SESSION_COOKIE, result.token, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production' && !insecureAllowed,
+      sameSite: crossSite ? 'none' : 'lax',
+      secure,
       path: '/',
       maxAge: 16 * 3600,
     })

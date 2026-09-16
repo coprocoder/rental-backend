@@ -1,5 +1,5 @@
 # Короткие команды. `make help` — список.
-.PHONY: help install dev check typecheck test arch baseline build worker migrate seed
+.PHONY: help install dev up down reset psql check typecheck test arch baseline build worker migrate seed
 
 help:  ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -8,8 +8,28 @@ help:  ## Показать список команд
 install:  ## Поставить зависимости
 	npm install
 
-dev:  ## Запустить сервис с перезапуском по изменению
+dev: up migrate ## Поднять БД и запустить сервис — основная команда
 	npm run dev
+
+up:  ## Поднять Postgres и сопутствующие сервисы
+	docker compose up -d --wait
+	@echo ""
+	@echo "  Postgres  localhost:55432   rental/rental"
+	@echo "  Почта     http://localhost:58025"
+	@echo ""
+
+down:  ## Остановить сервисы, данные сохраняются
+	docker compose down
+
+reset:  ## Снести всё вместе с данными и развернуть заново
+	docker compose down -v
+	docker compose up -d --wait
+	npm run db:migrate
+	npm run db:seed
+	@echo "Окружение пересобрано с чистой БД."
+
+psql:  ## Консоль psql
+	docker compose exec postgres psql -U rental -d rental
 
 check: typecheck test arch  ## Всё, что гоняет CI
 

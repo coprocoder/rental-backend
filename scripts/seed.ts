@@ -15,8 +15,8 @@
  * Запуск: npm run db:seed
  */
 import { Pool } from 'pg'
-import { hashPassword } from '../server/domain/core/auth'
-import { offerDraft, privacyDraft, rulesDraft } from '../server/domain/admin/texts.templates'
+import { hashPassword } from '~/domain/core/auth'
+import { offerDraft, privacyDraft, rulesDraft } from '~/domain/admin/texts.templates'
 import { hashText } from '~/common/utils/hash-text'
 
 const TENANT_SLUG = 'demo'

@@ -19,14 +19,14 @@
  * источником правды и тогда останется таблица outbox: Redis не
  * участвует в транзакции Postgres.
  */
-import { registerNotificationHandlers } from '../server/integrations/notify'
-import { expireHolds, expireUnconfirmed, markOverdue } from '../server/domain/orders/expire'
-import { processOutboxBatch } from '../server/domain/core/outbox'
-import { remindUnconfirmed } from '../server/domain/platform/reminders'
-import { expireWaitlist, passExpiredOffers } from '../server/domain/availability/waitlist'
-import { anonymizeExpired } from '../server/domain/admin/privacy'
-import { logger } from '../server/utils/logger'
-import { getWorkerPool } from '../server/utils/db'
+import { registerNotificationHandlers } from '~/integrations/notify'
+import { expireHolds, expireUnconfirmed, markOverdue } from '~/domain/orders/expire'
+import { processOutboxBatch } from '~/domain/core/outbox'
+import { remindUnconfirmed } from '~/domain/platform/reminders'
+import { expireWaitlist, passExpiredOffers } from '~/domain/availability/waitlist'
+import { anonymizeExpired } from '~/domain/admin/privacy'
+import { logger } from '~/kernel/logger'
+import { getWorkerPool } from '~/kernel/db'
 
 /** Как часто крутится цикл. Секунды, не минуты: outbox должен быть быстрым. */
 const TICK_MS = 15_000
