@@ -8,3 +8,4 @@ export {
   getBranches, getPlan, getStaff, getTheme, getToday,
 } from './service/tenant.service'
 export { registerTenantAdminRoutes } from './http/admin.controller'
+export { registerTenantMutations } from './http/mutations.controller'

@@ -108,6 +108,8 @@ cmd_all() {
   for f in "$BASE_DIR"/*.json; do
     local name path
     name="$(basename "$f" .json)"
+    # ⚠️ Карта запросов лежит рядом с эталонами и сама эталоном не является.
+    [ "$name" = "urls" ] && continue
     # Имя файла кодирует запрос: public_catalog_tenant_demo → /api/v1/public/catalog?tenant=demo
     path="$(python3 - "$name" "$BASE_DIR/urls.json" <<'PYEOF'
 import json, sys

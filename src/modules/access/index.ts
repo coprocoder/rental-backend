@@ -6,3 +6,4 @@
 export { registerAccessRoutes } from './http/access.controller'
 export { getMe } from './service/me.service'
 export { registerAccessAdminRoutes } from './http/admin.controller'
+export { registerAccessMutations } from './http/mutations.controller'

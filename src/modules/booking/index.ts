@@ -7,3 +7,4 @@
 export { registerBookingRoutes } from './http/booking.controller'
 export { getDocument, DOCUMENT_KINDS, type DocumentKind } from './service/agreement.service'
 export { registerBookingAdminRoutes } from './http/admin.controller'
+export { registerBookingMutations } from './http/mutations.controller'

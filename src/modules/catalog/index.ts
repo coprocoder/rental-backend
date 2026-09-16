@@ -18,3 +18,4 @@ export type {
 export { getCatalog } from './service/catalog.service'
 export { registerCatalogRoutes } from './http/catalog.controller'
 export { registerCatalogAdminRoutes } from './http/admin.controller'
+export { registerCatalogMutations } from './http/mutations.controller'
