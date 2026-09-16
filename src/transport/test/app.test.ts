@@ -140,3 +140,31 @@ describe('CORS', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined()
   })
 })
+
+describe('префикс /api', () => {
+  /**
+   * ⚠️ Псевдоним существует ради переключения фронта одной переменной
+   * окружения: в браузере 84 вызова написаны как `/api/v1/…`. Проверка
+   * держит именно это свойство — иначе переключение потребует правки
+   * 39 файлов, а откат станет невозможен той же переменной.
+   */
+  it('оба префикса ведут в один набор обработчиков', async () => {
+    const app = createApp({ config, deps: makeDeps() })
+
+    const bare = await app.inject({ url: '/v1/public/catalog' })
+    const prefixed = await app.inject({ url: '/api/v1/public/catalog' })
+
+    // Оба дошли до обработчика: это ошибка валидации, а не «маршрут не найден».
+    expect(bare.statusCode).toBe(422)
+    expect(prefixed.statusCode).toBe(422)
+    expect(prefixed.json()).toEqual(bare.json())
+  })
+
+  it('несуществующий маршрут под префиксом — тот же конверт', async () => {
+    const res = await createApp({ config, deps: makeDeps() })
+      .inject({ url: '/api/v1/nope' })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'Маршрут не найден' } })
+  })
+})
