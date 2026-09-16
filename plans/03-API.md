@@ -33,7 +33,7 @@ const Body = v.object({ … })                    // valibot, не типы ро
 route.post('/v1/admin/things', async (req, reply) => {
   const input = parse(Body, req.body)           // 3. валидация
   const ctx   = await contextOf(req, 'things.manage')   // 4. кто и можно ли
-  const result = await createThing(input, ctx, deps)    // 5. usecase
+  const result = await createThing(input, ctx, deps)    // 5. service
   return result                                  // 6. форма ответа явная
 })
 ```

@@ -1,5 +1,9 @@
 /**
- * Чтение каталога витрины: тенант, филиалы, варианты, услуги, сезоны.
+ * Чтение каталога витрины из БД: тенант, филиалы, варианты, услуги, сезоны.
+ *
+ * ⚠️ Здесь И ТОЛЬКО здесь живёт SQL модуля. Запрос в обработчике нельзя
+ * переиспользовать вторым маршрутом без копирования и нельзя проверить
+ * без HTTP; вынесенный сюда — можно и то, и другое.
  *
  * ⚠️ Функции возвращают СЫРЫЕ строки, без локализации и группировки:
  * `localized()` зависит от локали запроса, а группировка по категориям —
@@ -10,71 +14,20 @@
  * законный случай на витрине: слаг как раз и превращается в tenant_id,
  * до его разбора выставлять `app.tenant_id` нечем. Таблица `tenant` под
  * RLS не ходит (см. `unscoped` в `kernel/db.ts`). Всё остальное здесь
- * принимает уже готовый `PoolClient` из транзакции, открытой usecase.
+ * принимает уже готовый `PoolClient` из транзакции, открытой сервисом.
  */
 import type { PoolClient } from 'pg'
 import type { Db } from '../../../kernel/db'
-
-/**
- * ⚠️ `type` с индексной сигнатурой, а не `interface`: `db.unscoped`
- * ограничен `Record<string, unknown>`, а интерфейс такому ограничению
- * не удовлетворяет — у него нет индексной сигнатуры, и TS это отвергает
- * (TS2344). У остальных строк этой проблемы нет: они читаются через
- * `c.query`, где ограничения нет.
- */
-export type TenantRow = {
-  id: string
-  name: string
-  day_mode: string
-  group_threshold: number
-  theme: Record<string, unknown>
-  [key: string]: unknown
-}
-
-export interface BranchRow {
-  id: string
-  name: string
-  address: string | null
-  timezone: string
-}
-
-export interface CatalogRow {
-  category_code: string
-  category_name: { ru?: string }
-  body_params: string[]
-  variant_id: string
-  variant_code: string
-  variant_name: { ru?: string }
-  size_bucket: Record<string, unknown>
-  capacity: number
-  price: string | null
-}
-
-export interface OffSeasonRow {
-  code: string
-  name: { ru?: string }
-  season_from_month: number | null
-  season_to_month: number | null
-}
-
-export interface ServiceRow {
-  id: string
-  code: string
-  name: { ru?: string }
-  price: string | null
-}
-
-export interface SeasonRow {
-  code: string
-  season_from_month: number | null
-  season_to_month: number | null
-}
+import type {
+  BranchRow, CatalogRow, OffSeasonRow, SeasonRow, ServiceRow, TenantRow,
+} from '../catalog.types'
 
 /**
  * Тенант по слагу витрины.
  *
  * ⚠️ Возвращает `null`, а не бросает: какой ответ показать клиенту —
- * решает эндпоинт. Шлюз, бросающий HTTP-ошибку, это маршрут в маскировке.
+ * решает контроллер. Запрос к БД, бросающий HTTP-ошибку, — это маршрут
+ * в маскировке, и переиспользовать его вторым сценарием уже нельзя.
  */
 export async function tenantBySlug(db: Db, slug: string): Promise<TenantRow | null> {
   const rows = await db.unscoped<TenantRow>(

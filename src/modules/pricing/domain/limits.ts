@@ -13,15 +13,9 @@
  * глубина вперёд.
  *
  * ⚠️ Здесь только ПРАВИЛА, без SQL: чистые функции проверяются без базы,
- * а чтение живёт в `../gateway/limits.gateway.ts`.
+ * а чтение живёт в `../database/limits.repository.ts`.
  */
-export interface Limits {
-  poolSharePercent: number
-  maxActiveOrders: number
-  maxAdvanceDays: number
-  confirmDeadlineHours: number
-  holdMinutes: number
-}
+import type { Limits, LimitViolation } from '../pricing.types'
 
 export const DEFAULT_LIMITS: Limits = {
   poolSharePercent: 30,
@@ -30,11 +24,6 @@ export const DEFAULT_LIMITS: Limits = {
   confirmDeadlineHours: 24,
   holdMinutes: 20,
 }
-
-export type LimitViolation =
-  | { kind: 'pool_share', variantId: string, requested: number, allowed: number, capacity: number }
-  | { kind: 'active_orders', current: number, allowed: number }
-  | { kind: 'advance_days', requested: number, allowed: number }
 
 /**
  * Сколько единиц варианта доступно одному заказу.

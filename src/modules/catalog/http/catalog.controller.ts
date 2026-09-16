@@ -9,7 +9,7 @@ import * as v from 'valibot'
 import type { App } from '../../../transport/types'
 import type { Deps } from '../../../kernel/deps'
 import { parse } from '../../../transport/validate'
-import { getCatalog } from '../usecase/get-catalog'
+import { getCatalog } from '../service/catalog.service'
 
 const Query = v.object({
   tenant: v.pipe(v.string('Не указан тенант'), v.minLength(1, 'Не указан тенант')),

@@ -9,7 +9,7 @@
  */
 import type { App } from '../transport/types'
 import type { Deps } from '../kernel/deps'
-import { registerCatalogRoutes } from './catalog/transport/catalog.routes'
+import { registerCatalogRoutes } from './catalog'
 
 export function registerModules(app: App, deps: Deps): void {
   registerCatalogRoutes(app, deps)

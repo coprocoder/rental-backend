@@ -20,30 +20,45 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const ours = join(here, '..')
 const theirs = join(here, '../../../../rental/shared')
 
-/** Только модули, без тестов и вспомогательных каталогов. */
+/**
+ * Копия разложена по назначению (`contract/` и `utils/`), а оригинал
+ * лежит одним плоским каталогом. Сверяем по ИМЕНАМ файлов, а не по
+ * путям: раскладка — наше дело, содержимое — общее.
+ *
+ * ⚠️ `i18n-field.ts` в сверку не входит: он наш, во фронтовом `shared`
+ * его нет — там он жил в `server/utils/`.
+ */
+const OURS: Record<string, string> = Object.fromEntries(
+  ['contract', 'utils'].flatMap((sub) =>
+    readdirSync(join(here, '..', sub))
+      .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
+      .map((f) => [f, join(here, '..', sub, f)]),
+  ),
+)
+
 function modulesOf(dir: string): string[] {
   return readdirSync(dir)
     .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'))
     .sort()
 }
 
-describe('копии shared не разошлись', () => {
-  const our = modulesOf(ours)
-
+describe('копии общего кода не разошлись', () => {
   it('состав модулей совпадает', () => {
     // ⚠️ Если оригинал недоступен (сборка вне рабочей копии), тест
     // обязан упасть, а не притвориться зелёным: молчаливый пропуск
     // ровно здесь и означал бы, что долг перестал контролироваться.
-    expect(modulesOf(theirs)).toEqual(our)
+    const ours = Object.keys(OURS).filter((f) => f !== 'i18n-field.ts').sort()
+
+    expect(modulesOf(theirs)).toEqual(ours)
   })
 
-  it.each(modulesOf(ours))('%s совпадает с оригиналом дословно', (file) => {
-    const a = readFileSync(join(ours, file), 'utf8')
-    const b = readFileSync(join(theirs, file), 'utf8')
+  it.each(modulesOf(theirs))('%s совпадает с оригиналом дословно', (file) => {
+    const ourPath = OURS[file]
+    expect(ourPath, `${file} потерян при раскладке по contract/utils`).toBeTruthy()
 
-    expect(a).toBe(b)
+    expect(readFileSync(ourPath as string, 'utf8'))
+      .toBe(readFileSync(join(theirs, file), 'utf8'))
   })
 })

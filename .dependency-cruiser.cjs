@@ -15,14 +15,14 @@ module.exports = {
       name: 'transport-is-top',
       severity: 'error',
       comment:
-        'Общий транспортный набор (src/transport) доступен только транспортному слою '
-        + 'модулей, сборке приложения и самому себе. Если в него ходят usecase, domain '
-        + 'или gateway — значит бизнес-логика узнала про HTTP, и переносимость потеряна.',
+        'Общий транспортный набор (src/transport) доступен только HTTP-слою '
+        + 'модулей, сборке приложения и самому себе. Если в него ходят service, domain '
+        + 'или database — значит бизнес-логика узнала про HTTP, и переносимость потеряна.',
       from: {
         pathNot: [
           '^src/transport/',
           '^src/main\\.ts$',
-          '^src/modules/[^/]+/transport/',
+          '^src/modules/[^/]+/http/',
           // ⚠️ Реестр модулей — часть сборки приложения, а не бизнес-слой:
           // он существует ровно для того, чтобы зарегистрировать маршруты.
           '^src/modules/registry\\.ts$',
@@ -31,45 +31,45 @@ module.exports = {
       to: { path: '^src/transport/' },
     },
     {
-      name: 'usecase-no-http',
+      name: 'service-no-http',
       severity: 'error',
       comment:
-        'usecase не знает про HTTP. Как только в сигнатуру попадает объект запроса, '
+        'Сервис не знает про HTTP. Как только в сигнатуру попадает объект запроса, '
         + 'сценарий нельзя вызвать из воркера, из теста и из мобильного приложения стойки.',
-      from: { path: '/usecase/' },
+      from: { path: '/service/' },
       to: { path: 'node_modules/(fastify|@fastify)' },
     },
     {
       name: 'domain-no-io',
       severity: 'error',
       comment:
-        'domain не делает ввод-вывод: ни gateway, ни pg, ни внешних систем. '
+        'domain не делает ввод-вывод: ни запросов к БД, ни pg, ни внешних систем. '
         + 'Правила предметной области обязаны проверяться без базы — иначе их '
         + 'не покрывают тестами, а значит не покрывают вовсе.',
       from: { path: '/domain/' },
-      to: { path: '(/gateway/|/integrations/|node_modules/pg)' },
+      to: { path: '(/database/|/integrations/|node_modules/pg)' },
     },
     {
-      name: 'gateway-no-http',
+      name: 'database-no-http',
       severity: 'error',
       comment:
-        'gateway не знает про HTTP. Шлюз, бросающий HTTP-ошибку, это маршрут в маскировке: '
-        + 'его нельзя переиспользовать вторым эндпоинтом.',
-      from: { path: '/gateway/' },
+        'Слой БД не знает про HTTP. Запрос, бросающий HTTP-ошибку, это маршрут в '
+        + 'маскировке: его нельзя переиспользовать вторым сценарием.',
+      from: { path: '/database/' },
       to: { path: '(^src/transport|node_modules/(fastify|@fastify))' },
     },
     {
       name: 'module-private-internals',
       severity: 'error',
       comment:
-        'Модуль виден снаружи только через *.public.ts. Иначе через год всё связано со всем, '
-        + 'и переименование колонки ломает чужой модуль.',
+        'Модуль виден снаружи только через свой index.ts. Иначе через год всё связано '
+        + 'со всем, и переименование колонки ломает чужой модуль.',
       from: { path: '^src/modules/([^/]+)/' },
       to: {
         path: '^src/modules/([^/]+)/',
         pathNot: [
           '^src/modules/$1/',
-          '^src/modules/[^/]+/[^/]+\\.public\\.ts$',
+          '^src/modules/[^/]+/index\\.ts$',
         ],
       },
     },
@@ -82,13 +82,13 @@ module.exports = {
       to: { circular: true },
     },
     {
-      name: 'shared-is-leaf',
+      name: 'common-is-leaf',
       severity: 'error',
       comment:
-        'shared ни от чего не зависит: это контракт с фронтом, и любая его зависимость '
-        + 'уезжает в браузерный бандл.',
-      from: { path: '^src/shared/' },
-      to: { pathNot: '^src/shared/' },
+        'common ни от чего не зависит: там контракт с фронтом и чистые утилиты, и любая '
+        + 'его зависимость уезжает в браузерный бандл.',
+      from: { path: '^src/common/' },
+      to: { pathNot: '^src/common/' },
     },
     {
       name: 'kernel-knows-no-domain',
@@ -104,13 +104,13 @@ module.exports = {
       severity: 'warn',
       comment:
         'Файл, который никто не импортирует, чаще всего забыт, а не нужен.\n'
-        + '⚠️ src/shared исключён НАМЕРЕННО и временно: это контракт с фронтом, '
+        + '⚠️ src/common исключён НАМЕРЕННО и временно: там контракт с фронтом, '
         + 'и пока переехала часть эндпоинтов, часть его модулей ещё никем здесь не '
         + 'используется. Убрать исключение, когда переезд завершится, — иначе '
         + 'правило перестанет ловить настоящие потери.',
       from: {
         orphan: true,
-        pathNot: ['^src/main\\.ts$', '\\.d\\.ts$', '^src/shared/'],
+        pathNot: ['^src/main\\.ts$', '\\.d\\.ts$', '^src/common/'],
       },
       to: {},
     },

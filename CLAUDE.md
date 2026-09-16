@@ -27,30 +27,30 @@ reason the structure survives contact with deadlines.
 ```
 transport   HTTP: маршрут, разбор запроса, код ответа, заголовки
     ↓
-usecase     сценарий целиком  ← ЗДЕСЬ открывается транзакция, ровно один раз
+service     сценарий целиком  ← ЗДЕСЬ открывается транзакция, ровно один раз
     ↓
 domain      правила: цены, наличие, подбор, переходы статусов
     ↓
-gateway     SQL
+database     SQL
     ↓
 kernel      пул, тенантный контекст, часы, журнал, outbox, ошибки
 ```
 
-`shared/` sits beside them: types and pure functions shared with the frontend, no
+`common/` sits beside them: types and pure functions shared with the frontend, no
 dependencies of its own (`shared-is-leaf`).
 
-⚠️ **The transaction belongs to usecase.** `domain` and `gateway` receive a ready
+⚠️ **The transaction belongs to service.** `domain` and `database` receive a ready
 `PoolClient` and never open their own. The rule exists because the Nuxt catalog read
 through six separate transactions — six independent snapshots, between which the stock
 could change.
 
 ⚠️ **`Ctx` carries `tenantId`, `actor`, `correlationId` — never a request object.** As soon
-as HTTP reaches usecase, the scenario stops being callable from the worker, a test, or the
+as HTTP reaches service, the scenario stops being callable from the worker, a test, or the
 counter's future mobile app.
 
 ## Modules
 
-Vertical slices in `src/modules/<name>/` with `transport/ usecase/ domain/ gateway/` inside
+Vertical slices in `src/modules/<name>/` with `transport/ service/ domain/ database/` inside
 and **one** `<name>.public.ts` facade outside. Nine planned (`plans/01-МОДУЛИ.md`); ported
 so far: `catalog`, `pricing`.
 
@@ -64,7 +64,7 @@ in `pool_day` was written from six places, and they did.
 ## Adding an endpoint
 
 Six steps, in `plans/03-API.md`. The short version: valibot schema at the boundary →
-route → `Ctx` → usecase → explicit response shape.
+route → `Ctx` → service → explicit response shape.
 
 ⚠️ **The schema is not optional.** Fastify validates *responses*, never request bodies.
 ⚠️ **Normalisation lives in the schema**, so a new endpoint cannot forget it: `+7 999…`

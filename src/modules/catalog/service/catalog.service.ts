@@ -1,56 +1,28 @@
 /**
  * Сценарий «показать каталог витрины».
  *
- * ⚠️ В сигнатуре нет ни Request, ни PoolClient — только вход, контекст
- * и зависимости. Поэтому сценарий одинаково вызывается из HTTP, из теста
+ * ⚠️ В сигнатуре нет ни Request, ни PoolClient — только вход и
+ * зависимости. Поэтому сценарий одинаково вызывается из HTTP, из теста
  * и из будущего мобильного приложения стойки, а транспорт остаётся
  * заменяемым (`plans/02-СЛОИ.md`).
  *
  * ⚠️ Тенант здесь определяется СЛАГОМ витрины, а не сессией: это
- * публичный контур, клиент анонимен. Поэтому usecase принимает slug и
+ * публичный контур, клиент анонимен. Поэтому сервис принимает slug и
  * сам находит tenantId — единственный случай, когда он не приходит
  * готовым в Ctx.
  */
 import type { Deps } from '../../../kernel/deps'
 import { apiError } from '../../../kernel/errors'
-import { localized } from '../../../kernel/i18n-field'
-import { describeSeason } from '../../../shared/season'
-import { pickTheme } from '../../../shared/theme'
-import { getLimits } from '../../pricing/pricing.public'
+import { localized } from '../../../common/utils/i18n-field'
+import { describeSeason } from '../../../common/contract/season'
+import { pickTheme } from '../../../common/utils/theme'
+import { getLimits } from '../../pricing'
+import type {
+  CatalogCategory, GetCatalogInput,
+} from '../catalog.types'
 import {
   branchesOf, catalogRows, offSeasonRows, seasonRows, serviceRows, tenantBySlug,
-} from '../gateway/catalog.gateway'
-
-export interface GetCatalogInput {
-  /** Слаг витрины: `demo` в `/r/demo`. */
-  tenant: string
-  locale: string
-  /**
-   * Календарная дата начала аренды, `YYYY-MM-DD`.
-   *
-   * ⚠️ Именно календарная, а не момент времени: клиент выбирает день в
-   * календаре филиала, и месяц для сезонного фильтра берётся от него
-   * напрямую, без преобразования поясов. Преобразование расходилось
-   * между SSR и клиентом и меняло ключ кеша запроса.
-   */
-  rentalFrom: string
-}
-
-export interface CatalogVariant {
-  id: string
-  code: string
-  name: string
-  bucket: Record<string, unknown>
-  capacity: number
-  price: string | null
-}
-
-export interface CatalogCategory {
-  code: string
-  name: string
-  bodyParams: string[]
-  variants: CatalogVariant[]
-}
+} from '../database/catalog.repository'
 
 export async function getCatalog(input: GetCatalogInput, deps: Deps) {
   const tenant = await tenantBySlug(deps.db, input.tenant)
@@ -67,9 +39,14 @@ export async function getCatalog(input: GetCatalogInput, deps: Deps) {
       offSeasonRows(c, tenant.id, input.rentalFrom),
       serviceRows(c, tenant.id),
       seasonRows(c, tenant.id),
-      // ⚠️ Горизонт бронирования отдаётся клиенту, чтобы календарь НЕ ДАВАЛ
-      // выбрать даты, на которые заказ всё равно не примут. Раньше выбрать
-      // было можно, и человек получал «мест нет» вместо «так далеко нельзя»:
+      // ⚠️ ЕДИНСТВЕННОЕ обращение каталога к чужому модулю, и идёт оно
+      // через фасад `../../pricing`, а не во внутренности. Нужен ровно
+      // один факт — горизонт бронирования; копировать его в каталог
+      // значило бы завести второе место, где живёт то же правило.
+      //
+      // Горизонт отдаётся клиенту, чтобы календарь НЕ ДАВАЛ выбрать
+      // даты, на которые заказ всё равно не примут. Раньше выбрать было
+      // можно, и человек получал «мест нет» вместо «так далеко нельзя»:
       // за горизонтом склад просто не расписан, и наличие читается нулём.
       getLimits(c, tenant.id),
     ])
