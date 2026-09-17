@@ -6,7 +6,7 @@
 # вопросы, и второй важнее: переезд не должен ничего менять.
 set -euo pipefail
 
-BASE_DIR="${BASELINE_DIR:-../rental/test/fixtures/baseline}"
+BASE_DIR="${BASELINE_DIR:-../rental/test/api/baseline}"
 NEW="${NEW_BASE:-http://localhost:3200}"
 OLD="${OLD_BASE:-http://localhost:3100}"
 
@@ -105,11 +105,11 @@ cmd_all() {
   login
   local pass=0 fail=0
   shopt -s nullglob
-  for f in "$BASE_DIR"/*.json; do
+  # ⚠️ Эталоны разложены по контурам: baseline/{public,staff,admin,counter}/.
+  # Имя = "<контур>/<ресурс>", оно же ключ в urls.json.
+  for f in "$BASE_DIR"/*/*.json; do
     local name path
-    name="$(basename "$f" .json)"
-    # ⚠️ Карта запросов лежит рядом с эталонами и сама эталоном не является.
-    [ "$name" = "urls" ] && continue
+    name="$(basename "$(dirname "$f")")/$(basename "$f" .json)"
     # Имя файла кодирует запрос: public_catalog_tenant_demo → /api/v1/public/catalog?tenant=demo
     path="$(python3 - "$name" "$BASE_DIR/urls.json" <<'PYEOF'
 import json, sys
