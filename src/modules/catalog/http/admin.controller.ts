@@ -14,6 +14,7 @@ import { getItems } from '../service/admin-items.service'
 import { getService } from '../service/admin-service.service'
 import * as v from 'valibot'
 import { optionalId, parse } from '~/transport/validate'
+import { documentRoute } from '~/transport/openapi/registry'
 
 /**
  * ⚠️ Фильтр по позиции ОБЯЗАН разбираться схемой: браузер шлёт
@@ -27,6 +28,67 @@ const ItemsQuery = v.object({
   // живёт в сценарии (`includeArchived: q.archived === '1'`).
   archived: v.optional(v.string(), ''),
 })
+
+const InventoryResponse = v.object({
+  items: v.array(v.object({
+    variantId: v.pipe(v.string(), v.uuid()),
+    code: v.string(),
+    name: v.string(),
+    categoryCode: v.string(),
+    categoryName: v.string(),
+    branchId: v.pipe(v.string(), v.uuid()),
+    branchName: v.string(),
+    /** `tracked` — считаем остаток, `unverified` — наличие не проверяем. */
+    inventoryMode: v.string(),
+    total: v.number(),
+    /** Сколько уже забронировано вперёд: показывается предупреждением. */
+    bookedAhead: v.number(),
+    nearestBookingAt: v.nullable(v.string()),
+  })),
+})
+
+const ServiceResponse = v.object({
+  tasks: v.array(v.object({
+    // ⚠️ При количественном учёте вещи нет — есть позиция и число.
+    itemId: v.nullable(v.pipe(v.string(), v.uuid())),
+    labelCode: v.nullable(v.string()),
+    variantId: v.pipe(v.string(), v.uuid()),
+    variantName: v.string(),
+    categoryName: v.string(),
+    branchId: v.pipe(v.string(), v.uuid()),
+    branchName: v.string(),
+    qty: v.number(),
+    serviceKind: v.nullable(v.string()),
+    since: v.string(),
+    /** Сколько дней в работе: две недели — это уже забытое. */
+    days: v.number(),
+    qr: v.nullable(v.string()),
+  })),
+})
+
+const ItemsResponse = v.object({
+  // ⚠️ При поиске по номеру (`?code=`) ответ ДРУГОЙ: одна единица
+  // вместо списка. Это разные операции — «сколько ботинок 46»
+  // и «где вещь BO-0147».
+  items: v.optional(v.array(v.record(v.string(), v.unknown()))),
+  item: v.optional(v.nullable(v.record(v.string(), v.unknown()))),
+  categories: v.optional(v.array(v.object({
+    id: v.pipe(v.string(), v.uuid()),
+    code: v.string(),
+    name: v.string(),
+    tracking: v.string(),
+    variants: v.number(),
+    stock: v.number(),
+    items: v.number(),
+  }))),
+})
+
+documentRoute({ method: 'get', path: '/v1/admin/inventory', scope: 'staff', response: InventoryResponse,
+  summary: 'Остатки по позициям: сколько всего и сколько забронировано' })
+documentRoute({ method: 'get', path: '/v1/admin/service', scope: 'staff', response: ServiceResponse,
+  summary: 'Что сейчас в обслуживании: вещи и позиции, с какого дня' })
+documentRoute({ method: 'get', path: '/v1/admin/items', scope: 'staff', response: ItemsResponse,
+  summary: 'Единицы инвентаря с номерами; при ?code= — поиск одной по метке' })
 
 export function registerCatalogAdminRoutes(app: App, deps: Deps): void {
   app.get('/v1/admin/inventory', async (req) => {

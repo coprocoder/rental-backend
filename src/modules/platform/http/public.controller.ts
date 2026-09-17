@@ -8,10 +8,27 @@
  */
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
+import * as v from 'valibot'
+import { documentRoute } from '~/transport/openapi/registry'
 import { postRegister } from '../service/register.public'
 import { postTelegram } from '../service/telegram-webhook.public'
 import { postMax } from '../service/max-webhook.public'
 import { getTour } from '../service/tour.public'
+
+const TourResponse = v.object({
+  tenants: v.array(v.object({ slug: v.string(), name: v.string() })),
+  orderCode: v.nullable(v.string()),
+  /** ⚠️ Живые токены заказа: маршрут закрыт ALLOW_DEV_PAGES. */
+  links: v.nullable(v.object({
+    view: v.string(),
+    confirm: v.string(),
+    cancel: v.string(),
+  })),
+  counterOrder: v.nullable(v.record(v.string(), v.unknown())),
+})
+
+documentRoute({ method: 'get', path: '/v1/dev/tour', scope: 'staff', response: TourResponse,
+  summary: 'Данные демонстрационного обхода: тенанты и живой заказ' })
 
 export function registerPlatformPublic(app: App, deps: Deps): void {
   // ⚠️ Данные демонстрационного обхода. Закрыт ALLOW_DEV_PAGES,

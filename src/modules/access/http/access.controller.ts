@@ -8,6 +8,7 @@
 import * as v from 'valibot'
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
+import { documentRoute } from '~/transport/openapi/registry'
 import { parse } from '~/transport/validate'
 import { apiError } from '~/kernel/errors'
 import { requireSession, SESSION_COOKIE } from '~/kernel/session'
@@ -37,6 +38,28 @@ const LoginBody = v.object({
 const SwitchBody = v.object({
   pin: v.pipe(v.string(), v.minLength(4), v.maxLength(12)),
 })
+
+/**
+ * Кто сейчас работает.
+ *
+ * ⚠️ `features` и права — ТОЛЬКО чтобы не показывать недоступное.
+ * Границу держит сервер; клиенту здесь верить нельзя.
+ */
+const MeResponse = v.object({
+  name: v.string(),
+  role: v.string(),
+  branchIds: v.array(v.pipe(v.string(), v.uuid())),
+  /** Отличается от активного после переключения по PIN. */
+  sessionOwnerId: v.pipe(v.string(), v.uuid()),
+  tenantName: v.string(),
+  // ⚠️ Тема ОДНА на все интерфейсы: витрину, админку и стойку.
+  theme: v.record(v.string(), v.string()),
+  features: v.record(v.string(), v.boolean()),
+  planCode: v.string(),
+})
+
+documentRoute({ method: 'get', path: '/v1/staff/me', scope: 'staff', response: MeResponse,
+  summary: 'Текущий сотрудник: роль, филиалы, тема и функции тарифа' })
 
 export function registerAccessRoutes(app: App, deps: Deps): void {
   app.get('/v1/staff/me', async (req) => {
