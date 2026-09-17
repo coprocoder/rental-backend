@@ -311,18 +311,22 @@ export async function setCategoryTracking(
      *
      * Ёмкость берём из журнала движений: это и есть остаток на складе.
      */
+    // ⚠️ Один день-якорь с актуальной ёмкостью, а не горизонт (19.43):
+    // строки на конкретные дни заводит бронь, их отсутствие означает
+    // «свободно всё». Ёмкость берём из журнала движений — это и есть
+    // остаток на складе.
     const { maxAdvanceDays } = await getLimits(c, opts.tenantId)
     await c.query(
       `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
-       SELECT $1, v.id, d::date, 0,
+       SELECT $1, v.id, (current_date + $3::int)::date, 0,
               GREATEST(COALESCE((SELECT SUM(m.qty) FROM movement m
                                   WHERE m.variant_id = v.id
                                     AND m.branch_id = v.branch_id), 0), 0)::int
          FROM inventory_variant v
-        CROSS JOIN generate_series(current_date, current_date + $3::int, '1 day') AS d
         WHERE v.tenant_id = $1 AND v.category_id = $2 AND v.archived_at IS NULL
-       ON CONFLICT (variant_id, day) DO NOTHING`,
-      [opts.tenantId, opts.categoryId, maxAdvanceDays],
+       ON CONFLICT (variant_id, day)
+       DO UPDATE SET capacity = excluded.capacity`,
+      [opts.tenantId, opts.categoryId, maxAdvanceDays + 365],
     )
     return { tracking: opts.tracking, itemsCreated: 0 }
   }

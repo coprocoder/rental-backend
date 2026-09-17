@@ -147,6 +147,24 @@ export async function checkAvailability(
             HAVING -SUM(m.qty) > 0
           )
      ),
+     -- ⚠️ Базовая ёмкость позиции — для дней, которых НЕТ в календаре.
+     -- pool_day не заполняется заранее на горизонт: строка появляется
+     -- в момент брони. Отсутствие строки означает «в этот день никто
+     -- ничего не бронировал», то есть свободен весь склад, а не ноль.
+     -- Раньше за границей заполненного календаря позиция показывалась
+     -- занятой при полном складе (19.43).
+     --
+     -- ⚠️ Берётся из ПОСЛЕДНЕГО известного дня, а не из суммы движений:
+     -- в календаре учтены приходы, списания и правки количества,
+     -- а сумма движений накапливает ошибки — на демо-стенде повторный
+     -- запуск сидера задвоил её (14 против 7 реальных).
+     base AS (
+       SELECT pd.capacity
+         FROM pool_day pd
+        WHERE pd.variant_id = $1
+        ORDER BY pd.day DESC
+        LIMIT 1
+     ),
      -- Ёмкость дня: при поимённом учёте — сколько вещей свободно
      -- именно в этот день; иначе — счётчик пула.
      cap AS (
@@ -163,11 +181,12 @@ export async function checkAvailability(
                          SELECT 1 FROM item_blackout ib
                           WHERE ib.item_id = u.id AND ib.days @> d::date
                        )
-              ) ELSE COALESCE(pd.capacity, 0) - COALESCE(pd.qty_booked, 0) END AS free_raw,
+              ) ELSE COALESCE(pd.capacity, (SELECT capacity FROM base), 0)
+                     - COALESCE(pd.qty_booked, 0) END AS free_raw,
               -- Для процента резерва нужна ПОЛНАЯ ёмкость дня, а не
               -- остаток: иначе процент считался бы от уже занятого.
               CASE WHEN $3::bool THEN (SELECT count(*)::int FROM usable)
-                   ELSE COALESCE(pd.capacity, 0) END AS total,
+                   ELSE COALESCE(pd.capacity, (SELECT capacity FROM base), 0) END AS total,
               bl.variant_id AS blacked
          FROM unnest($2::date[]) AS d
          LEFT JOIN pool_day pd
@@ -248,14 +267,29 @@ export async function reservePool(
 
   // Один запрос вместо цикла: порядок гарантирован ORDER BY внутри,
   // а СУБД сама сериализует конкурентные обновления по строкам.
+  //
+  // ⚠️ INSERT … ON CONFLICT, а не UPDATE. Календарь не заполняется
+  // заранее на горизонт (19.43), и в дальнем дне строки может не быть:
+  // `UPDATE` менял бы ноль строк МОЛЧА — бронь не записана, а витрина
+  // показывает позицию свободной. Это продажа одной вещи дважды.
+  //
+  // ⚠️ Ёмкость новой строки берётся из последнего известного дня —
+  // того же источника, что и расчёт наличия. Иначе день, созданный
+  // бронью, получил бы ёмкость, не равную той, по которой эту бронь
+  // только что разрешили.
   await c.query(
     `WITH d AS (
        SELECT unnest($3::date[]) AS day ORDER BY 1
+     ),
+     base AS (
+       SELECT capacity FROM pool_day
+        WHERE variant_id = $2 ORDER BY day DESC LIMIT 1
      )
-     UPDATE pool_day pd
-     SET qty_booked = pd.qty_booked + $4
-     FROM d
-     WHERE pd.tenant_id = $1 AND pd.variant_id = $2 AND pd.day = d.day`,
+     INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+     SELECT $1, $2, d.day, $4, COALESCE((SELECT capacity FROM base), 0)
+       FROM d
+     ON CONFLICT (variant_id, day)
+     DO UPDATE SET qty_booked = pool_day.qty_booked + $4`,
     [req.tenantId, req.variantId, days, qty],
   )
 }
