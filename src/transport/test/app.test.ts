@@ -18,6 +18,9 @@ const config: Config = {
   databaseUrl: 'postgres://unused',
   workerDatabaseUrl: 'postgres://unused',
   logLevel: 'silent',
+  // ⚠️ Закрыто: обход выдаёт живые токены заказов, и тест приложения
+  // не должен зависеть от того, открыт ли он.
+  allowDevPages: false,
   serviceName: 'test',
   isProduction: false,
   corsOrigins: ['https://shop.example'],

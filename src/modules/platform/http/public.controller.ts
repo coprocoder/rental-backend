@@ -11,8 +11,13 @@ import type { Deps } from '~/kernel/deps'
 import { postRegister } from '../service/register.public'
 import { postTelegram } from '../service/telegram-webhook.public'
 import { postMax } from '../service/max-webhook.public'
+import { getTour } from '../service/tour.public'
 
 export function registerPlatformPublic(app: App, deps: Deps): void {
+  // ⚠️ Данные демонстрационного обхода. Закрыт ALLOW_DEV_PAGES,
+  // на хосте заказчика отвечает 404.
+  app.get('/v1/dev/tour', async () => getTour(deps))
+
   app.post('/v1/platform/register', async (httpReq) =>
     postRegister({ body: httpReq.body }, deps))
 
