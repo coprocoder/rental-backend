@@ -6,11 +6,36 @@ import { parse } from '~/transport/validate'
 import { apiError } from '~/kernel/errors'
 import { DOCUMENT_KINDS, getDocument, type DocumentKind } from '../service/agreement.service'
 import { documentPage, wantsHtml } from '~/transport/html'
+import { documentRoute } from '~/transport/openapi/registry'
 import { TEXT_KINDS } from '~/domain/admin/texts'
 
 const OfferQuery = v.object({
   tenant: v.pipe(v.string('Не указан тенант'), v.minLength(1, 'Не указан тенант')),
   kind: v.optional(v.string(), 'offer'),
+})
+
+/**
+ * Ответ с юридическим документом.
+ *
+ * ⚠️ Отдаётся и как JSON (этот вид), и как HTML-страница — по заголовку
+ * `Accept` (19.44). Схема описывает JSON: HTML читает человек, а не код.
+ *
+ * ⚠️ `hash` есть не всегда: у оферты, взятой из фолбэка `theme`
+ * (тенанты, заведённые до версионирования), его нет.
+ */
+const DocumentResponse = v.object({
+  version: v.string(),
+  text: v.string(),
+  hash: v.optional(v.string()),
+})
+
+documentRoute({
+  method: 'get',
+  path: '/v1/public/agreement/offer',
+  summary: 'Договор проката, политика ПД или правила — действующая редакция',
+  scope: 'public',
+  query: OfferQuery,
+  response: DocumentResponse,
 })
 
 export function registerBookingRoutes(app: App, deps: Deps): void {

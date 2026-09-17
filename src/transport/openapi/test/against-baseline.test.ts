@@ -34,6 +34,7 @@ const CASES: { route: string, files: string[] }[] = [
     route: '/v1/public/catalog',
     files: ['public/catalog', 'public/catalog__summer', 'public/catalog__locale_en'],
   },
+  { route: '/v1/public/agreement/offer', files: ['public/agreement_offer'] },
 ]
 
 describe('схемы ответов не расходятся с API', () => {
