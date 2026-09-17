@@ -34,3 +34,29 @@ export function parse<S extends v.GenericSchema>(schema: S, input: unknown): v.I
   }
   return parsed.output
 }
+
+/**
+ * Необязательный идентификатор в query-строке.
+ *
+ * ⚠️ Пустая строка — НЕ идентификатор. Браузер отправляет `?variantId=`
+ * за любой незаполненный фильтр, а разбор вида
+ * `typeof q.variantId === 'string' ? q.variantId : undefined` её
+ * пропускал: пустая строка уезжала в SQL как UUID и Postgres отвечал
+ * `invalid input syntax for type uuid: ""` (22P02). Наружу это
+ * выглядело как **500 «Внутренняя ошибка»** на трёх эндпоинтах
+ * (`admin/items`, `admin/labels`, `counter/orders`, — последний это
+ * экран стойки), хотя запрос был обычным «покажи всё без фильтра».
+ *
+ * ⚠️ Проверяем и ФОРМУ, а не только пустоту: `?variantId=не-uuid`
+ * роняло точно так же. Мусор в фильтре — это 422 с указанием поля,
+ * а не сбой сервера: 500 поднимает тревогу и прячет, что виноват вход.
+ *
+ * `undefined` на выходе означает «фильтра нет» — ровно то, что ждут
+ * сценарии.
+ */
+export const optionalId = v.optional(
+  v.union([
+    v.pipe(v.literal(''), v.transform(() => undefined)),
+    v.pipe(v.string(), v.uuid('Неверный идентификатор')),
+  ]),
+)
