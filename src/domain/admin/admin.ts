@@ -15,6 +15,7 @@ import type { PoolClient } from 'pg'
 import { apiError } from '~/kernel/errors'
 import { localized, type I18nField } from '~/common/utils/i18n-field'
 import { createItems } from '~/domain/inventory/items'
+import { getLimits } from '~/domain/pricing/limits'
 
 export interface TodayScreen {
   /** Выдачи, которые должны состояться сегодня. */
@@ -343,11 +344,30 @@ export async function adjustQuantity(
 
   // Ёмкость пула следует за количеством: иначе новые вещи нельзя
   // забронировать, а списанные система продолжит продавать.
+  //
+  // ⚠️ INSERT … ON CONFLICT, а не UPDATE. У ВНОВЬ ЗАВЕДЁННОГО варианта
+  // строк `pool_day` нет вовсе: их создавал только демо-сидер. `UPDATE`
+  // молча менял ноль строк — приход записывался в `movement`, остаток по
+  // движениям был верен, админка отвечала успехом, а ёмкость оставалась
+  // нулевой, и позиция НИКОГДА не показывалась свободной. Проявлялось
+  // у первого же реального проката, который завёл позицию сам (19.34).
+  //
+  // ⚠️ Горизонт — из настроек тенанта (`maxAdvanceDays`), а не константа
+  // 120 из сидера: бронировать дальше горизонта всё равно нельзя, а
+  // строки за его пределами — мусор.
+  //
+  // ⚠️ Существующие строки ПРИБАВЛЯЮТ дельту, а не перезаписываются
+  // (в отличие от сидера, который задаёт абсолютную ёмкость): здесь
+  // приход и списание — изменение, а не установка значения.
+  const { maxAdvanceDays } = await getLimits(c, opts.tenantId)
+
   await c.query(
-    `UPDATE pool_day
-     SET capacity = GREATEST(0, capacity + $3)
-     WHERE tenant_id = $1 AND variant_id = $2 AND day >= current_date`,
-    [opts.tenantId, opts.variantId, opts.delta],
+    `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+     SELECT $1, $2, d::date, 0, GREATEST(0, $3)
+     FROM generate_series(current_date, current_date + $4::int, '1 day') AS d
+     ON CONFLICT (variant_id, day)
+     DO UPDATE SET capacity = GREATEST(0, pool_day.capacity + $3)`,
+    [opts.tenantId, opts.variantId, opts.delta, maxAdvanceDays],
   )
 
   // ⚠️ Поступление при поимённом учёте обязано выдать номера: остаток

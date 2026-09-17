@@ -23,6 +23,7 @@ import type { Session } from '~/kernel/session'
 import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { audit } from '~/domain/core/order-lifecycle'
+import { getLimits } from '~/domain/pricing/limits'
 
 const Body = v.object({
   categoryId: v.pipe(v.string(), v.uuid()),
@@ -79,6 +80,29 @@ export async function postCatalogItem(
          makeCode(category.code), JSON.stringify({ ru: input.name }), mode],
       )
       const variantId = made[0]!.id
+
+      /**
+       * ⚠️ Календарь наличия заводится СРАЗУ, с нулевой ёмкостью.
+       *
+       * Без этих строк вариант не существует для расчёта наличия: он
+       * считается по `pool_day`, а не по движениям. Приход делал
+       * `UPDATE pool_day … WHERE variant_id = …`, менял ноль строк и
+       * молча ничего не давал — позиция никогда не показывалась
+       * свободной (19.34). Заводим нули здесь, наполняет их поступление.
+       *
+       * ⚠️ Услуги пропускаем: у «заточки» нет склада, и ограничивать её
+       * ёмкостью значило бы придумать несуществующий дефицит.
+       */
+      if (category.code !== 'service') {
+        const { maxAdvanceDays } = await getLimits(c, session.tenantId)
+        await c.query(
+          `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+           SELECT $1, $2, d::date, 0, 0
+           FROM generate_series(current_date, current_date + $3::int, '1 day') AS d
+           ON CONFLICT (variant_id, day) DO NOTHING`,
+          [session.tenantId, variantId, maxAdvanceDays],
+        )
+      }
 
       // Цена — бессрочное базовое правило с текущего момента.
       await c.query(
