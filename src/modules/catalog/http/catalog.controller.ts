@@ -10,6 +10,7 @@ import type { App } from '../../../transport/types'
 import type { Deps } from '../../../kernel/deps'
 import { parse } from '../../../transport/validate'
 import { getCatalog } from '../service/catalog.service'
+import { documentRoute } from '~/transport/openapi/registry'
 
 const Query = v.object({
   tenant: v.pipe(v.string('Не указан тенант'), v.minLength(1, 'Не указан тенант')),
@@ -23,6 +24,73 @@ const Query = v.object({
    * пришёл мусорным — точную дату клиент задаст сам.
    */
   from: v.optional(v.string(), ''),
+})
+
+/**
+ * Ответ витрины.
+ *
+ * ⚠️ Описан схемой ради двух вещей сразу: OpenAPI для внешних
+ * разработчиков виджета и типы для фронта, где после выноса бэкенда
+ * выводить их стало неоткуда (19.40, 19.42).
+ *
+ * ⚠️ Цены — СТРОКИ: деньги хранятся как `numeric`, и превращение
+ * в `number` теряет копейки на больших суммах. Клиент их только
+ * показывает, считает сервер (железное правило 1).
+ */
+const CatalogResponse = v.object({
+  tenant: v.object({
+    name: v.string(),
+    dayMode: v.string(),
+    groupThreshold: v.number(),
+  }),
+  branches: v.array(v.object({
+    id: v.pipe(v.string(), v.uuid()),
+    name: v.string(),
+    address: v.nullable(v.string()),
+    timezone: v.string(),
+  })),
+  categories: v.array(v.object({
+    code: v.string(),
+    name: v.string(),
+    bodyParams: v.array(v.string()),
+    variants: v.array(v.object({
+      id: v.pipe(v.string(), v.uuid()),
+      code: v.string(),
+      name: v.string(),
+      // Размерная сетка: состав зависит от категории.
+      bucket: v.nullable(v.record(v.string(), v.unknown())),
+      capacity: v.number(),
+      price: v.string(),
+    })),
+  })),
+  /** Позиции вне сезона: показываются серыми, с объяснением. */
+  offSeason: v.array(v.object({
+    code: v.string(),
+    name: v.string(),
+    season: v.string(),
+  })),
+  services: v.array(v.object({
+    id: v.pipe(v.string(), v.uuid()),
+    code: v.string(),
+    name: v.string(),
+    price: v.string(),
+  })),
+  seasons: v.array(v.object({
+    code: v.string(),
+    fromMonth: v.nullable(v.number()),
+    toMonth: v.nullable(v.number()),
+  })),
+  theme: v.record(v.string(), v.string()),
+  maxAdvanceDays: v.number(),
+})
+
+documentRoute({
+  method: 'get',
+  path: '/v1/public/catalog',
+  summary: 'Каталог витрины: категории, варианты, цены, сезоны и тема',
+  scope: 'public',
+  query: Query,
+  response: CatalogResponse,
 })
 
 export function registerCatalogRoutes(app: App, deps: Deps): void {

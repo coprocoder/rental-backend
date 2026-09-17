@@ -5,6 +5,8 @@ import type { Deps } from '~/kernel/deps'
 import { parse } from '~/transport/validate'
 import { apiError } from '~/kernel/errors'
 import { DOCUMENT_KINDS, getDocument, type DocumentKind } from '../service/agreement.service'
+import { documentPage, wantsHtml } from '~/transport/html'
+import { TEXT_KINDS } from '~/domain/admin/texts'
 
 const OfferQuery = v.object({
   tenant: v.pipe(v.string('Не указан тенант'), v.minLength(1, 'Не указан тенант')),
@@ -12,11 +14,35 @@ const OfferQuery = v.object({
 })
 
 export function registerBookingRoutes(app: App, deps: Deps): void {
-  app.get('/v1/public/agreement/offer', async (req) => {
+  /**
+   * Юридический документ: оферта, политика ПД, правила проката.
+   *
+   * ⚠️ Один адрес, две формы ответа — по заголовку `Accept`.
+   * Браузер по ссылке из формы бронирования просит `text/html` и
+   * получает читаемую страницу; `fetch` из кода получает прежний JSON.
+   * Менять форму для всех было нельзя: это публичный API, и виджет
+   * встраивается в чужие сайты (19.44).
+   *
+   * ⚠️ Раньше отдавался только JSON, и человек, нажавший «условия
+   * аренды» рядом с чекбоксом «соглашаюсь», видел
+   * `{"version":"v1","text":"⚠️ ТИПОВАЯ…` с экранированными переносами.
+   * Это текст, под которым он ставит подпись.
+   */
+  app.get('/v1/public/agreement/offer', async (req, reply) => {
     const q = parse(OfferQuery, req.query)
     if (!DOCUMENT_KINDS.includes(q.kind as DocumentKind)) {
       throw apiError('VALIDATION_FAILED', 'Неизвестный вид документа')
     }
-    return getDocument({ tenant: q.tenant, kind: q.kind as DocumentKind }, deps)
+    const kind = q.kind as DocumentKind
+    const doc = await getDocument({ tenant: q.tenant, kind }, deps)
+
+    if (!wantsHtml(req.headers.accept)) return doc
+
+    // ⚠️ Название берётся из общего списка видов, а не пишется здесь
+    // второй раз: иначе экран текстов в админке и документ для клиента
+    // однажды назовут одно и то же по-разному.
+    const title = TEXT_KINDS.find((t) => t.kind === kind)?.title ?? 'Документ'
+    reply.header('content-type', 'text/html; charset=utf-8')
+    return documentPage({ title, version: doc.version, text: doc.text })
   })
 }

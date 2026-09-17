@@ -11,6 +11,7 @@ import type { Deps } from '../kernel/deps'
 import type { Config } from '../kernel/config'
 import type { App } from './types'
 import { registerErrorHandler } from './errors'
+import { buildOpenApi } from './openapi/build'
 import { registerModules } from '../modules/registry'
 
 export interface AppOptions {
@@ -85,6 +86,22 @@ export function createApp({ config, deps }: AppOptions): App {
   app.register(async (scoped) => {
     registerModules(scoped as unknown as App, deps)
   }, { prefix: '/api' })
+
+  /**
+   * Спецификация API.
+   *
+   * ⚠️ Отдаётся приложением, а не лежит файлом: файл расходится с кодом
+   * молча, а этот документ собирается из тех же схем, которыми роуты
+   * описаны, и сверяется с эталоном ответов тестом (19.42).
+   *
+   * ⚠️ Открыт без сессии намеренно: публичный контур нужен внешним
+   * разработчикам виджета, а перечень рабочих маршрутов секретом
+   * не является — доступ к ним закрывает сессия, а не незнание адреса.
+   */
+  app.get('/openapi.json', async (_req, reply) => {
+    reply.header('cache-control', 'no-store')
+    return buildOpenApi()
+  })
 
   /**
    * Health check — проверяет СОЕДИНЕНИЕ С БД, а не отвечает 200
