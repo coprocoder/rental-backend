@@ -21,7 +21,10 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const theirs = join(here, '../../../../rental/utils')
+// ⚠️ Путь менялся дважды: shared/ → utils/ → app/utils/. Тест каждый
+// раз падал первым — это и есть его работа: копия не должна тихо
+// потеряться при перекладывании каталогов.
+const theirs = join(here, '../../../../rental/app/utils')
 
 /**
  * Копия разложена по назначению (`contract/` и `utils/`), а оригинал
