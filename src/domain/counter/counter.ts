@@ -31,7 +31,12 @@ export interface OrderSearchResult {
   publicCode: string
   status: string
   customerName: string | null
-  phoneTail: string
+  /**
+   * ⚠️ `null` у выдачи без брони: там клиента не записывают вовсе.
+   * Раньше тип обещал `string`, а `LEFT JOIN customer` отдавал null —
+   * и `phone.slice(-4)` ронял ВЕСЬ список стойки в 500.
+   */
+  phoneTail: string | null
   startsAt: Date
   endsAt: Date
   total: string | null
@@ -64,7 +69,8 @@ export async function findOrders(
     public_code: string
     status: string
     name: string | null
-    phone: string
+    // ⚠️ LEFT JOIN: у выдачи без брони клиента нет.
+    phone: string | null
     starts_at: Date
     ends_at: Date
     total_amount: string | null
@@ -95,7 +101,11 @@ export async function findOrders(
     customerName: r.name,
     // ⚠️ Наружу только хвост телефона: полный номер на экране стойки
     // виден очереди за спиной, а это персональные данные.
-    phoneTail: r.phone.slice(-4),
+    //
+    // ⚠️ Телефона может не быть: выдача без брони оформляется без
+    // клиента. Три таких заказа на демо роняли весь список в 500,
+    // стоило снять галочку «только на сегодня».
+    phoneTail: r.phone ? r.phone.slice(-4) : null,
     startsAt: r.starts_at,
     endsAt: r.ends_at,
     total: r.total_amount,

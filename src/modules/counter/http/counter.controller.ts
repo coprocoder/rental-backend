@@ -60,7 +60,8 @@ const CounterOrdersResponse = v.object({
     status: v.string(),
     customerName: v.nullable(v.string()),
     // ⚠️ Только хвост телефона: на стойке экран видит очередь,
-    // а полный номер там не нужен.
+    // а полный номер там не нужен. `null` у выдачи без брони —
+    // там клиента не записывают вовсе.
     phoneTail: v.nullable(v.string()),
     startsAt: v.string(),
     endsAt: v.string(),
