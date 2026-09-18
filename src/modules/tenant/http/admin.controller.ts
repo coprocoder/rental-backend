@@ -57,6 +57,23 @@ documentRoute({ method: 'get', path: '/v1/admin/setup', scope: 'staff', response
 
 const Period = v.object({ from: v.string(), to: v.string() })
 
+/**
+ * Строка упущенного спроса: чего не хватило и во сколько это обошлось.
+ *
+ * ⚠️ Объявлена отдельно, потому что встречается в ДВУХ ответах —
+ * в сводных отчётах и в отдельном роуте `/admin/lost-demand`. Копия
+ * разошлась бы на первой же правке: в сводке она была описана как
+ * `record(string, unknown)`, а в своём роуте — по полям.
+ */
+const LostDemandRow = v.object({
+  variantId: v.pipe(v.string(), v.uuid()),
+  variantName: v.string(),
+  /** Сколько раз отказали: спрос, который не смогли обслужить. */
+  refusals: v.number(),
+  estimatedAmount: v.string(),
+  utilization: v.number(),
+})
+
 const ReportsResponse = v.object({
   period: Period,
   /** Загрузка: сколько дней позиция была занята из возможных. */
@@ -84,25 +101,58 @@ const ReportsResponse = v.object({
     confirmed: v.number(),
     rate: v.number(),
   }),
-  popular: v.array(v.record(v.string(), v.unknown())),
+  /**
+   * ⭐ Популярные размеры — самый ценный отчёт для закупки: пара
+   * «взято / отказано», а не одно «брали». Размер может быть популярен
+   * потому, что его много, а редкий — потому что его вечно нет.
+   */
+  popular: v.array(v.object({
+    code: v.string(),
+    name: v.string(),
+    categoryName: v.string(),
+    taken: v.number(),
+    /** Сколько раз не хватило — отказы по наличию. */
+    refused: v.number(),
+  })),
   /** Что лежит без движения: кандидаты на списание. */
-  deadStock: v.array(v.record(v.string(), v.unknown())),
-  lostDemand: v.array(v.record(v.string(), v.unknown())),
+  deadStock: v.array(v.object({
+    code: v.string(),
+    name: v.string(),
+    categoryName: v.string(),
+    onHand: v.number(),
+    taken: v.number(),
+    /**
+     * ⚠️ `null` — не брали НИ РАЗУ, и это другой случай, чем «не брали
+     * 60 дней»: позицию могли завести вчера. На демо поле пришло `0`,
+     * поэтому форма взята из типа домена `DeadStockRow`, а не только
+     * из ответа.
+     */
+    daysIdle: v.nullable(v.number()),
+  })),
+  lostDemand: v.array(LostDemandRow),
 })
 
 const LostDemandResponse = v.object({
   period: Period,
-  rows: v.array(v.object({
-    variantId: v.pipe(v.string(), v.uuid()),
-    variantName: v.string(),
-    /** Сколько раз отказали: спрос, который не смогли обслужить. */
-    refusals: v.number(),
-    estimatedAmount: v.string(),
-    utilization: v.number(),
-  })),
+  rows: v.array(LostDemandRow),
   note: v.string(),
 })
 
+/**
+ * ⚠️ Отдаёт CSV, а не JSON — поэтому `contentType`. Заголовки ставит
+ * контроллер: сервис о существовании HTTP не знает и возвращает строку.
+ */
+documentRoute({ method: 'get', path: '/v1/admin/export', scope: 'staff',
+  response: v.string(), contentType: 'text/csv',
+  query: v.object({
+    /**
+     * ⚠️ Значения — из самого сервиса (`kind === 'orders' | 'inventory'
+     * | 'demand'`), а не по смыслу названия: «клиенты» и «выручка»
+     * звучат правдоподобно, но таких выгрузок нет. Умолчание `orders`.
+     */
+    kind: v.optional(v.picklist(['orders', 'inventory', 'demand'])),
+  }),
+  summary: 'Выгрузка в CSV: заказы, инвентарь или упущенный спрос' })
 documentRoute({ method: 'get', path: '/v1/admin/reports', scope: 'staff', response: ReportsResponse,
   summary: 'Отчёты: загрузка, выручка, неявки, популярное и мёртвый склад' })
 documentRoute({ method: 'get', path: '/v1/admin/lost-demand', scope: 'staff',
@@ -130,8 +180,20 @@ const TextsResponse = v.object({
     createdAt: v.string(),
     createdBy: v.nullable(v.string()),
   })),
-  /** Типовая оферта для тенантов, заведённых до версионирования. */
-  fallbackOffer: v.nullable(v.string()),
+  /**
+   * Заготовка платформы: действует, пока тенант не завёл свою оферту.
+   * `null` — своя редакция есть, подставлять нечего.
+   *
+   * ⚠️ Это ОБЪЕКТ, а не строка: `offerFor` возвращает `OfferText`
+   * (`version`, `text`, `hash`). Здесь стояло `nullable(string())` —
+   * схема лгала, и экран текстов, читающий `fallbackOffer.text`,
+   * выглядел ошибочным, хотя ошибался как раз документ.
+   */
+  fallbackOffer: v.nullable(v.object({
+    version: v.string(),
+    text: v.string(),
+    hash: v.string(),
+  })),
 })
 
 documentRoute({ method: 'get', path: '/v1/admin/texts', scope: 'staff', response: TextsResponse,

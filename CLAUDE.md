@@ -75,8 +75,18 @@ changing format.
 ## Migration rules
 
 ⚠️ **Every ported endpoint is compared against the baseline byte for byte.** Baselines live
-in `../rental/baseline/`, captured from the live Nuxt stand before any change. This is how
-the price-rule defect (19.23) was found — a scenario run, not a unit test.
+in `test/fixtures/baseline/`, captured from the live Nuxt stand before any change. This is
+how the price-rule defect (19.23) was found — a scenario run, not a unit test.
+
+⚠️ They moved here from the frontend on 18 September 2026 (TODO 19.45): only this repo's
+checks ever read them, so the repository boundary ran through the middle of the check. A
+second, unread copy sat here and had silently diverged on 20 of 38 files.
+
+⚠️ **Seven baselines diverge on their own** — `daysLeft`, `days` in service, the
+`lost-demand` window, `utilization`, `nearestBookingAt`, `counter/orders` all depend on
+"today", so `make baseline` reports 31/38 a day after capture. Check that a divergence is
+**only** in time-dependent fields before dismissing it; re-capturing is not a fix (TODO
+19.46).
 
 ⚠️ **Do not rewrite the domain or the tests.** 10 200 lines of domain and 322 tests move as
 they are; that is the main saving of the whole plan. Work that touches them needs a separate
@@ -92,11 +102,21 @@ frontend (`NUXT_PUBLIC_API_BASE`), and so is rolling back.
 | Команда | Что |
 |---|---|
 | `make check` | то, что гоняет CI: типы, тесты, границы слоёв |
-| `make baseline` | сверка ответов с эталоном старого стенда |
+| `make baseline` | сверка ответов с эталоном (нужен поднятый сервис) |
+| `make scenarios` | сценарии мутаций: переход состояния (нужен поднятый сервис) |
 | `make dev` | сервис с перезапуском по изменению |
 
-Requires Postgres from `../rental/docker-compose.yml` (port 55432) — the schema and
-migrations still live in the Nuxt repo and are **not** duplicated here.
+Requires Postgres from `../rental/docker-compose.yml` (port 55432).
+
+⚠️ **The schema and migrations live HERE** — `src/db/schema.ts` and `drizzle/` (generated
++ `drizzle/manual/` for what Drizzle cannot express: `EXCLUDE`, RLS, roles). The line
+claiming they "still live in the Nuxt repo" was true only during the split.
+
+⚠️ `drizzle-kit generate` was broken from the split until 18 September 2026: the config
+pointed at `./server/db/schema.ts` (a Nuxt directory that does not exist here). Nothing
+caught it because `npm run db:migrate` reads the already-written `.sql` files — only the
+generator was dead, and every migration since was written by hand. See
+`drizzle.config.ts`.
 
 ⚠️ **`make check` не проверяет переезд.** Тесты доказывают, что код делает задуманное;
 `make baseline` — что он делает **то же, что делал раньше**. Для переезда важнее второе,

@@ -440,6 +440,16 @@ export interface OrderDetail {
   lines: {
     id: string
     kind: string
+    /**
+     * ⚠️ `variantId`, `itemId` и `labelCode` ВОЗВРАЩАЛИСЬ и раньше, но в
+     * типе их не было: функция объявлена как `Promise<OrderDetail | null>`,
+     * а отдавала больше полей, чем обещала, — лишнее поле в возвращаемом
+     * литерале ошибкой не считается. Экран стойки ими пользуется (выбор
+     * конкретной вещи при поимённом учёте), а из-за пробела в типе схема
+     * роута описала строку как `record(string, unknown)` — и фронт получал
+     * `unknown` там, где правда была известна с самого начала.
+     */
+    variantId: string | null
     variantCode: string | null
     variantName: string | null
     /** Название категории: на бумаге «42» без «Ботинки» не читается. */
@@ -453,6 +463,9 @@ export interface OrderDetail {
     verifiedBy: string | null
     verifiedAt: Date | null
     bootSoleLengthMm: number | null
+    /** Конкретная вещь — заполнена только при поимённом учёте. */
+    itemId: string | null
+    labelCode: string | null
     returnedAt: Date | null
     conditionNote: string | null
   }[]

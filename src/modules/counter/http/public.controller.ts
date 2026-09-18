@@ -7,30 +7,18 @@
  */
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
-import * as v from 'valibot'
 import { documentRoute } from '~/transport/openapi/registry'
+import { OrderDetailSchema } from '~/transport/schemas/order-detail'
 import { requireSession, SESSION_COOKIE } from '~/kernel/session'
 import { getCounterOrder } from '../service/order-detail.public'
 
-const CounterOrderResponse = v.object({
-  id: v.pipe(v.string(), v.uuid()),
-  publicCode: v.string(),
-  status: v.string(),
-  branchName: v.string(),
-  branchAddress: v.nullable(v.string()),
-  tenantName: v.string(),
-  branchId: v.pipe(v.string(), v.uuid()),
-  timezone: v.string(),
-  startsAt: v.string(),
-  endsAt: v.string(),
-  total: v.nullable(v.string()),
-  priceBreakdown: v.nullable(v.record(v.string(), v.unknown())),
-  confirmDeadline: v.nullable(v.string()),
-  createdAt: v.string(),
-  customer: v.nullable(v.record(v.string(), v.unknown())),
-  lines: v.array(v.record(v.string(), v.unknown())),
-  agreement: v.optional(v.nullable(v.record(v.string(), v.unknown()))),
-})
+/**
+ * ⚠️ Та же схема, что у админки: объект отдаёт одна доменная функция
+ * `orderDetail`. Здесь была своя, более грубая версия — строки заказа
+ * как `record(string, unknown)`, — и экран стойки получал `unknown`
+ * вместо типа на 34 обращения к полям.
+ */
+const CounterOrderResponse = OrderDetailSchema
 
 documentRoute({ method: 'get', path: '/v1/counter/orders/:id', scope: 'staff',
   response: CounterOrderResponse,

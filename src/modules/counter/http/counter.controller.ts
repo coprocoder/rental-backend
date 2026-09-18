@@ -161,7 +161,20 @@ const ShiftResponse = v.object({
     cashExpected: v.nullable(v.string()),
     /** Расхождение кассы: то, ради чего смену и сверяют. */
     cashDiff: v.nullable(v.string()),
-    incidents: v.array(v.record(v.string(), v.unknown())),
+    /**
+     * Что сломалось за смену — это и есть передача: вечерний сотрудник
+     * должен узнать о поломках, не читая журнал целиком.
+     *
+     * ⚠️ Форма из типа домена (`shift.ts`), а не из ответа: на стенде
+     * смена закрыта, и `day` приходит `null`. Здесь стояло
+     * `record(string, unknown)`, из-за чего экран смены не мог
+     * отформатировать `i.at` — время события приходило как `unknown`.
+     */
+    incidents: v.array(v.object({
+      kind: v.string(),
+      at: v.string(),
+      note: v.nullable(v.string()),
+    })),
   }))),
 })
 

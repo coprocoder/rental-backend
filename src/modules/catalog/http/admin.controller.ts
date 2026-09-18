@@ -89,6 +89,15 @@ documentRoute({ method: 'get', path: '/v1/admin/service', scope: 'staff', respon
   summary: 'Что сейчас в обслуживании: вещи и позиции, с какого дня' })
 documentRoute({ method: 'get', path: '/v1/admin/items', scope: 'staff', response: ItemsResponse,
   summary: 'Единицы инвентаря с номерами; при ?code= — поиск одной по метке' })
+/**
+ * ⚠️ Отдаёт HTML для печати, а не JSON — поэтому `contentType`. Роут
+ * не был описан вовсе: спецификация выглядела полной, потому что
+ * недостающими оказались ровно те два роута, которые не возвращают JSON.
+ */
+documentRoute({ method: 'get', path: '/v1/admin/labels', scope: 'staff',
+  response: v.string(), contentType: 'text/html',
+  query: ItemsQuery,
+  summary: 'Лист этикеток с QR-кодами для печати (HTML, noindex)' })
 
 export function registerCatalogAdminRoutes(app: App, deps: Deps): void {
   app.get('/v1/admin/inventory', async (req) => {
