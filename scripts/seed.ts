@@ -441,7 +441,10 @@ async function main() {
     console.log('⚠️ Оферта, политика ПД и правила — ТИПОВЫЕ ЗАГОТОВКИ, не проверенные юристом.')
     console.log('Сотрудники: owner@demo.local / admin@ / counter@ / tech@ — пароль demo1234')
     console.log('PIN для переключения на стойке: 1111 / 2222 / 3333 / 4444')
-    console.log(`Открой http://localhost:3100/r/${TENANT_SLUG}`)
+    // ⚠️ Адрес берётся из окружения: 3100 был портом Nuxt-контейнера,
+    // которого больше нет, и сеятель звал туда ещё сутки после переезда.
+    const where = process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000'
+    console.log(`Открой ${where}/r/${TENANT_SLUG}`)
   } catch (err) {
     await c.query('ROLLBACK')
     throw err

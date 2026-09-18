@@ -25,8 +25,22 @@ import { processOutboxBatch } from '~/domain/core/outbox'
 import { remindUnconfirmed } from '~/domain/platform/reminders'
 import { expireWaitlist, passExpiredOffers } from '~/domain/availability/waitlist'
 import { anonymizeExpired } from '~/domain/admin/privacy'
-import { logger } from '~/kernel/logger'
+import { createLogger } from '~/kernel/logger'
+import { loadConfig } from '~/kernel/config'
 import { getWorkerPool } from '~/kernel/db'
+
+/**
+ * ⚠️ Логгер СОЗДАЁТСЯ здесь, как в `main.ts`, а не импортируется
+ * готовым: `kernel/logger` экспортирует только фабрику `createLogger`,
+ * и `import { logger }` не существовал никогда.
+ *
+ * ⚠️ Из-за этого воркер НЕ ЗАПУСКАЛСЯ вовсе — ни в разработке, ни в
+ * проде: `SyntaxError: does not provide an export named 'logger'`.
+ * А он рассылает уведомления и снимает просроченные брони. Поймать это
+ * было нечем: `tsc --noEmit` проверяет только `src/**`, а `scripts/`
+ * в сборку не входили, и первый же запуск был бы на стенде.
+ */
+const logger = createLogger(loadConfig())
 
 /** Как часто крутится цикл. Секунды, не минуты: outbox должен быть быстрым. */
 const TICK_MS = 15_000

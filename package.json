@@ -7,8 +7,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "start": "node dist/main.js",
-    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/src/main.js",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json --resolve-full-paths",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
@@ -18,10 +18,13 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "openapi": "tsx -e \"import('./src/transport/openapi/build').then(async m => { await import('./src/modules/registry'); console.log(JSON.stringify(m.buildOpenApi(), null, 2)) })\""
+    "openapi": "tsx -e \"import('./src/transport/openapi/build').then(async m => { await import('./src/modules/registry'); console.log(JSON.stringify(m.buildOpenApi(), null, 2)) })\"",
+    "worker:prod": "node dist/scripts/worker.js",
+    "db:migrate:prod": "node dist/scripts/migrate.js"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.0",
+    "@valibot/to-json-schema": "^0.2.0",
     "drizzle-orm": "^0.36.4",
     "fastify": "^5.2.0",
     "pg": "^8.13.0",
@@ -33,10 +36,10 @@
     "@types/node": "^26.4.1",
     "@types/pg": "^8.11.0",
     "@types/qrcode": "^1.5.6",
-    "@valibot/to-json-schema": "^0.2.0",
     "dependency-cruiser": "^16.5.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.14.0",
+    "tsc-alias": "^1.9.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
