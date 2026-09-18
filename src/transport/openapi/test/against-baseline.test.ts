@@ -22,7 +22,7 @@ import * as v from 'valibot'
 import { documentedRoutes } from '../registry'
 import '../../../modules/registry'
 
-const BASELINE = resolve(process.cwd(), '../rental/test/api/baseline')
+const BASELINE = resolve(process.cwd(), 'test/fixtures/baseline')
 const urls = JSON.parse(readFileSync(resolve(BASELINE, 'urls.json'), 'utf8')) as Record<string, string>
 
 /** `/api/v1/admin/orders/5f44…` → `/v1/admin/orders/:id` */

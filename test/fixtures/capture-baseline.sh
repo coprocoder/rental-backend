@@ -1,18 +1,45 @@
 #!/usr/bin/env bash
-# Снятие эталона ответов со СТАРОГО стенда (Nuxt, :3100).
+# Снятие эталона ответов API.
 #
-# ⚠️ Запускать ДО переезда эндпоинта. Эталон, снятый после, — не эталон,
-# а слепок текущего поведения: он согласится с любым свежим дефектом.
+# ⚠️ Раскладка по КОНТУРАМ (`baseline/{public,staff,admin,counter}/`), а не
+# плоским списком: 38 файлов в одной директории не читаются, а по контурам
+# сразу видно, что покрыто и чего не хватает.
 #
-#   cd .. && docker compose up -d          # стенд на :3100
+# ⚠️ ПЕРЕЕЗД ЗАВЕРШЁН (16 сентября 2026): Nuxt-бэкенда больше нет,
+# эталон снимается с этого сервиса (:3200). Свою задачу — доказать, что
+# перенос ничего не сломал, — он выполнил: 38 из 38 совпали побайтово
+# на каждом шаге.
+#
+# ⚠️ Сам эталон переехал сюда из фронта 18 сентября 2026. Читали его
+# только здешние проверки (`make baseline`, тест OpenAPI) — по пути
+# `../rental/test/api/baseline`, то есть граница репозиториев проходила
+# посередине проверки. Во фронте рядом лежала ВТОРАЯ копия, слепок
+# старого Nuxt-стенда со стеками `/app/server/...`: её не читал никто,
+# и она молча расходилась с живой по 20 файлам.
+#
+# Теперь это регрессионный слепок: он ловит непреднамеренные изменения
+# ответов при доработках. ⚠️ Пересоздавать его ОСОЗНАННО, объясняя в
+# коммите, что и почему изменилось — иначе он согласится с любым
+# свежим дефектом.
+#
+#   make dev                               # API на :3200
 #   ./test/fixtures/capture-baseline.sh
 #
-# Сверка — в ../rental-backend: make baseline
+# Сверка: make baseline
+#
+# ⚠️ Часть ответов ЗАВИСИТ ОТ «СЕГОДНЯ»: admin/service считает days —
+# сколько дней вещь в ремонте, admin/today и admin/plan тоже смотрят на
+# текущую дату. Эталон, снятый вчера, разойдётся с сегодняшним ответом
+# на этих полях, и это НЕ дефект переезда.
+#
+# Проверять так: если расхождение только во «временны́х» полях —
+# сравнить ОБА бэкенда между собой напрямую. Совпали — пересобрать
+# эталон. Разошлись — вот это уже находка.
 set -u
-B=http://localhost:3100/api/v1
+B=${API:-http://localhost:3200}/api/v1
 OUT="$(dirname "$0")/baseline"
 CJ=$(mktemp)
-curl -s -c "$CJ" -X POST http://localhost:3100/api/v1/staff/login \
+curl -s -c "$CJ" -X POST "${API:-http://localhost:3200}/api/v1/staff/login" \
   -H 'content-type: application/json' \
   -d '{"email":"owner@demo.local","password":"demo1234"}' -o /dev/null
 TID=$(docker exec rental-postgres-1 psql -U rental -d rental -tA -c "SELECT id FROM tenant WHERE slug='demo'")
@@ -26,10 +53,12 @@ echo "order=$OID token=${TOK:0:8}…"
 URLS="$OUT/urls.json"
 : > "$URLS.tmp"
 
-grab() { # name url [auth]
+grab() { # name url [auth]   name = <контур>_<ресурс>[__<вариант>]
   local name="$1" url="$2" auth="${3:-}"
-  local f="$OUT/$name.json" code
-  printf '%s\t%s\n' "$name" "${url#http://localhost:3100}" >> "$URLS.tmp"
+  local contour="${name%%_*}" rest="${name#*_}"
+  mkdir -p "$OUT/$contour"
+  local f="$OUT/$contour/$rest.json" code
+  printf '%s\t%s\n' "$contour/$rest" "${url#${API:-http://localhost:3200}}" >> "$URLS.tmp"
   if [ "$auth" = "auth" ]; then
     code=$(curl -s -b "$CJ" -o "$f" -w '%{http_code}' "$url")
   else

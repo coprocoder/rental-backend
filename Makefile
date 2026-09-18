@@ -1,5 +1,5 @@
 # Короткие команды. `make help` — список.
-.PHONY: help install dev up down reset psql check typecheck test arch baseline build worker migrate seed
+.PHONY: help install dev up down reset psql check typecheck test arch baseline scenarios build worker migrate seed
 
 help:  ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -42,8 +42,11 @@ test:  ## Прогнать тесты
 arch:  ## Проверить границы слоёв и модулей
 	npm run arch
 
-baseline:  ## Сверить ответы с эталоном старого стенда (нужны оба сервиса)
+baseline:  ## Сверить ответы с эталоном (нужен поднятый сервис)
 	.claude/skills/baseline/compare.sh all
+
+scenarios:  ## Сценарии мутаций: переход состояния (нужен поднятый сервис)
+	./test/scenarios.sh
 
 build:  ## Собрать в dist/
 	npm run build
