@@ -16,7 +16,6 @@
   "admin/pricing": "/api/v1/admin/pricing",
   "admin/reports": "/api/v1/admin/reports",
   "admin/service": "/api/v1/admin/service",
-  "admin/setup": "/api/v1/admin/setup",
   "admin/staff": "/api/v1/admin/staff",
   "admin/texts": "/api/v1/admin/texts",
   "admin/theme": "/api/v1/admin/theme",

@@ -111,7 +111,6 @@
 | `GET` | `/api/v1/admin/pricing` |  |
 | `POST` | `/api/v1/admin/privacy` | Запросы субъекта персональных данных: экспорт и удаление |
 | `GET` | `/api/v1/admin/reports` | Отчёты владельца (13.19, 17.12) |
-| `GET` | `/api/v1/admin/setup` | Прогресс настройки для мастера (14.3) |
 | `GET` | `/api/v1/admin/staff` | Сотрудники тенанта (13.13) |
 | `POST` | `/api/v1/admin/staff` | Сотрудники: создать, архивировать, разблокировать, сменить PIN |
 | `GET` | `/api/v1/admin/texts` |  |

@@ -15,7 +15,6 @@ import { getIntegrations } from '../service/admin-integrations.service'
 import { getExport } from '../service/admin-export.service'
 import { getReports } from '../service/admin-reports.service'
 import { getLostDemand } from '../service/admin-lost-demand.service'
-import { getSetup } from '../service/admin-setup.service'
 
 /** Состояние одной интеграции. Ключ виден только хвостом. */
 const IntegrationState = v.object({
@@ -32,28 +31,9 @@ const IntegrationsResponse = v.object({
   fiscal: v.object({ configured: v.boolean(), provider: v.string() }),
 })
 
-const SetupResponse = v.object({
-  steps: v.array(v.object({
-    key: v.string(),
-    title: v.string(),
-    hint: v.string(),
-    done: v.boolean(),
-    count: v.number(),
-    to: v.string(),
-    required: v.boolean(),
-  })),
-  done: v.number(),
-  total: v.number(),
-  /** Можно ли уже принимать заказы: не все шаги обязательны. */
-  canAcceptOrders: v.boolean(),
-  hasOrders: v.boolean(),
-})
-
 documentRoute({ method: 'get', path: '/v1/admin/integrations', scope: 'staff',
   response: IntegrationsResponse,
   summary: 'Подключённые мессенджеры, платежи и фискализация' })
-documentRoute({ method: 'get', path: '/v1/admin/setup', scope: 'staff', response: SetupResponse,
-  summary: 'Мастер настройки проката: какие шаги пройдены' })
 
 const Period = v.object({ from: v.string(), to: v.string() })
 
@@ -221,10 +201,6 @@ export function registerTenantAdminRoutes(app: App, deps: Deps): void {
   app.get('/v1/admin/reports', async (req) => {
     const s = await requirePlanFeature(deps.db, req.cookies[SESSION_COOKIE], 'reports.revenue', 'analytics')
     return getReports(s, req.query as Record<string, unknown>, deps)
-  })
-  app.get('/v1/admin/setup', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
-    return getSetup(s, deps)
   })
 
   /**
