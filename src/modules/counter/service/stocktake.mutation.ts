@@ -14,7 +14,7 @@ import { canAccessBranch } from '~/domain/core/auth'
 import { applyStocktake, poolDrift, stocktakeSheet, stuckInService } from '~/domain/counter/stocktake'
 import { currentShift } from '~/domain/counter/shift'
 
-const Body = v.object({
+export const StocktakeBody = v.object({
   branchId: v.pipe(v.string(), v.uuid()),
   categoryCode: v.optional(v.string()),
   /** Пусто — вернуть ведомость. Заполнено — применить пересчёт. */
@@ -37,7 +37,7 @@ export async function postStocktake(
 ) {
   // Ревизия правит наличие — это уровень админа, не стойки.
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(StocktakeBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные ревизии')
   const input = parsed.output
 

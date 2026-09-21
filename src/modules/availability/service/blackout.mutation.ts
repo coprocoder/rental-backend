@@ -21,7 +21,7 @@ import { audit } from '~/domain/core/order-lifecycle'
 
 const Day = v.pipe(v.string(), v.regex(/^\d{4}-\d{2}-\d{2}$/, 'Дата в формате ГГГГ-ММ-ДД'))
 
-const Body = v.variant('action', [
+export const BlackoutBody = v.variant('action', [
   v.object({
     action: v.literal('set'),
     variantId: v.pipe(v.string(), v.uuid()),
@@ -50,7 +50,7 @@ export async function postBlackout(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(BlackoutBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Проверьте данные отключения')
   }

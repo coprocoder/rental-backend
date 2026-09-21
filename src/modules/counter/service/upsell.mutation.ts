@@ -13,7 +13,7 @@ import { canAccessBranch } from '~/domain/core/auth'
 import { addUpsellLine } from '~/domain/pricing/upsell'
 import type { DayMode } from '~/common/contract/day-count'
 
-const Body = v.object({
+export const UpsellBody = v.object({
   orderId: v.pipe(v.string(), v.uuid()),
   variantId: v.pipe(v.string(), v.uuid()),
   qty: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(20))),
@@ -29,7 +29,7 @@ export async function postUpsell(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(UpsellBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные')
   const input = parsed.output
 

@@ -25,7 +25,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { audit } from '~/domain/core/order-lifecycle'
 import { getLimits } from '~/domain/pricing/limits'
 
-const Body = v.object({
+export const CatalogItemBody = v.object({
   categoryId: v.pipe(v.string(), v.uuid()),
   /** Показываемое имя. Латинский код собирается ниже сам. */
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120)),
@@ -55,7 +55,7 @@ export async function postCatalogItem(
   req: PostCatalogItemRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(CatalogItemBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте категорию, название и цену')
   const input = parsed.output
 

@@ -15,7 +15,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { finishService } from '~/domain/service/service'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.object({
+export const ServiceBody = v.object({
   variantId: v.pipe(v.string(), v.uuid()),
   branchId: v.pipe(v.string(), v.uuid()),
   qty: v.pipe(v.number(), v.integer(), v.minValue(1)),
@@ -34,7 +34,7 @@ export async function postService(
   req: PostServiceRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ServiceBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте позицию и количество')
   const input = parsed.output
 

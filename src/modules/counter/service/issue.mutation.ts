@@ -11,7 +11,7 @@ import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { issueOrder } from '~/domain/counter/counter'
 
-const Body = v.object({
+export const IssueBody = v.object({
   orderId: v.pipe(v.string(), v.uuid()),
   lines: v.pipe(v.array(v.object({
     orderLineId: v.pipe(v.string(), v.uuid()),
@@ -40,7 +40,7 @@ export async function postIssue(
 ) {
   // Выдача при расхождении — полномочие стойки: клиент стоит, надо решать.
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(IssueBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные выдачи')
 
   try {

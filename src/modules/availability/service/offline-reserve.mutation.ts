@@ -17,7 +17,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { canAccessBranch } from '~/domain/core/auth'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.object({
+export const OfflineReserveBody = v.object({
   branchId: v.pipe(v.string(), v.uuid()),
   categoryId: v.pipe(v.string(), v.uuid()),
   mode: v.picklist(['percent', 'absolute']),
@@ -34,7 +34,7 @@ export async function postOfflineReserve(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(OfflineReserveBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные резерва')
   const input = parsed.output
 

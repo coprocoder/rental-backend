@@ -65,7 +65,9 @@ function operationOf(r: RouteDoc): Json {
     responses: {
       200: {
         description: 'Успех',
-        content: { 'application/json': { schema: convert(r.response) } },
+        // ⚠️ Не всякий ответ — JSON: выгрузка отдаёт CSV, лист этикеток
+        // HTML. Тип содержимого берётся из роута, а не подразумевается.
+        content: { [r.contentType ?? 'application/json']: { schema: convert(r.response) } },
       },
       // ⚠️ Конверт ошибки один на весь API: `{ error: { code, message } }`.
       // Виджет реагирует на `code`, а не на текст — тексты переводятся.

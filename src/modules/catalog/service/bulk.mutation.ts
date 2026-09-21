@@ -19,7 +19,7 @@ const Filter = v.object({
   q: v.optional(v.pipe(v.string(), v.maxLength(200))),
 })
 
-const Body = v.variant('mode', [
+export const BulkBody = v.variant('mode', [
   v.object({ mode: v.literal('preview'), filter: Filter, locale: v.optional(v.string()) }),
   v.object({
     mode: v.literal('apply'),
@@ -43,7 +43,7 @@ export async function postBulk(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(BulkBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Проверьте запрос')
   }

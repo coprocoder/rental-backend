@@ -21,7 +21,7 @@ import {
   exportTenantData,
 } from '~/domain/admin/privacy'
 
-const Body = v.variant('action', [
+export const PrivacyBody = v.variant('action', [
   v.object({
     action: v.literal('export_subject'),
     // ⚠️ Та же нормализация, что при записи: иначе поиск субъекта
@@ -60,7 +60,7 @@ export async function postPrivacy(
   // Работа с ПД — уровень владельца: это юридическая ответственность
   // проката, а не рутина стойки.
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(PrivacyBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте запрос')
   const input = parsed.output
 

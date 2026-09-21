@@ -17,7 +17,7 @@ import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.object({
+export const PlanBody = v.object({
   planCode: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
 })
 
@@ -30,7 +30,7 @@ export async function postPlan(
   req: PostPlanRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(PlanBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Укажите тариф')
   const { planCode } = parsed.output
 

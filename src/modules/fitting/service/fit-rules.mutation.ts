@@ -12,7 +12,7 @@ import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { publishFitTable } from '~/domain/fitting/fit-rules'
 
-const Body = v.object({
+export const FitRulesBody = v.object({
   categoryId: v.pipe(v.string(), v.uuid()),
   // Год чартов: раньше 2000 быть не может, будущее дальше следующего
   // года — почти наверняка опечатка.
@@ -35,7 +35,7 @@ export async function postFitRules(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(FitRulesBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте строки таблицы')
 
   try {

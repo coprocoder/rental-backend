@@ -20,7 +20,7 @@ import { markNoShow } from '~/domain/core/exceptions'
 import { orderDetail } from '~/domain/admin/admin'
 import { canAccessBranch, can } from '~/domain/core/auth'
 
-const Body = v.object({
+export const OrderActionBody = v.object({
   action: v.picklist(['confirm', 'cancel', 'no_show', 'clear_no_show']),
   // ⚠️ Минимум 3 символа: «.» в поле причины — это формально
   // заполненная форма и пустой след в журнале.
@@ -48,7 +48,7 @@ export async function postOrderAction(
   const orderId = req.params.id
   if (!orderId) throw apiError('VALIDATION_FAILED', 'Нужен id заказа')
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(OrderActionBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Укажите действие и причину')
   }

@@ -15,7 +15,7 @@ import { requireFeature } from '~/domain/core/entitlements'
 import { hashPassword } from '~/domain/core/auth'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.variant('action', [
+export const StaffBody = v.variant('action', [
   v.object({
     action: v.literal('create'),
     email: v.pipe(v.string(), v.email()),
@@ -41,7 +41,7 @@ export async function postStaff(
   req: PostStaffRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(StaffBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные сотрудника')
   const input = parsed.output
 

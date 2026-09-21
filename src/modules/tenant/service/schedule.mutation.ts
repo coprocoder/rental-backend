@@ -31,7 +31,7 @@ const Slot = v.object({
   closesAt: v.optional(Time),
 })
 
-const Body = v.variant('action', [
+export const ScheduleBody = v.variant('action', [
   v.object({
     action: v.literal('week'),
     branchId: v.pipe(v.string(), v.uuid()),
@@ -79,7 +79,7 @@ export async function postSchedule(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ScheduleBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Проверьте расписание')
   }

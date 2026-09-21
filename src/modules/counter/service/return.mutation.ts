@@ -15,7 +15,7 @@ import { returnOrder } from '~/domain/counter/counter'
 import { recalculate, type SnapshotLine } from '~/domain/orders/recalc'
 import type { DayMode } from '~/common/contract/day-count'
 
-const Body = v.object({
+export const ReturnBody = v.object({
   orderId: v.pipe(v.string(), v.uuid()),
   lines: v.pipe(v.array(v.object({
     orderLineId: v.pipe(v.string(), v.uuid()),
@@ -37,7 +37,7 @@ export async function postReturn(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ReturnBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные возврата')
 
   try {

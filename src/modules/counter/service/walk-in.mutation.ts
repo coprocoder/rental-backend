@@ -20,7 +20,7 @@ import { walkInOrder } from '~/domain/counter/counter'
 import { quote } from '~/domain/pricing/pricing'
 import type { DayMode } from '~/common/contract/day-count'
 
-const Body = v.object({
+export const WalkInBody = v.object({
   branchId: v.pipe(v.string(), v.uuid()),
   from: v.pipe(v.string(), v.isoTimestamp()),
   to: v.pipe(v.string(), v.isoTimestamp()),
@@ -49,7 +49,7 @@ export async function postWalkIn(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(WalkInBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные выдачи')
   const input = parsed.output
 

@@ -34,7 +34,7 @@ import {
   getLimits,
 } from '~/domain/pricing/limits'
 
-const Body = v.object({
+export const CreateOrderBody = v.object({
   tenant: v.pipe(v.string(), v.minLength(1)),
   branchId: v.pipe(v.string(), v.uuid()),
   from: v.pipe(v.string(), v.isoTimestamp()),
@@ -81,7 +81,7 @@ export async function postOrders(
   req: PostOrdersInput,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(CreateOrderBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', 'Проверьте заполнение полей', {
       issues: parsed.issues.map((i) => ({ path: i.path?.map((p) => p.key).join('.'), message: i.message })),
@@ -124,15 +124,15 @@ export async function postOrders(
   try {
     return await deps.db.tx(tenant.id, async (c) => {
       // Идемпотентность: тот же ключ → тот же заказ.
+      //
+      // ⚠️ Это БЫСТРЫЙ путь, а не защита. Между этим SELECT и вставкой
+      // ниже второй запрос успевает пройти ту же проверку — гонку
+      // закрывает уникальный индекс `order_idem_key_uk` (миграция
+      // 0018), а проигравший ловится в catch и получает тот же ответ,
+      // что и здесь. Железное правило 2: инвариант в БД, не в коде.
       if (idemKey) {
-        const existing = await c.query<{ public_code: string, status: string }>(
-          `SELECT public_code, status FROM rental_order
-           WHERE tenant_id = $1 AND price_breakdown->>'idemKey' = $2`,
-          [tenant.id, idemKey],
-        )
-        if (existing.rows[0]) {
-          return { code: existing.rows[0].public_code, status: existing.rows[0].status, repeated: true }
-        }
+        const found = await existingByIdemKey(c, tenant.id, idemKey)
+        if (found) return found
       }
 
       // ⚠️ Подписка проверяется ТОЛЬКО на создание новой брони.
@@ -469,6 +469,36 @@ export async function postOrders(
       }
     })
   } catch (err) {
+    // ⚠️ Проигравший гонку за `Idempotency-Key` — НЕ ошибка клиента.
+    // Уникальный индекс отказал второй вставке, но заказ создан: надо
+    // отдать его, а не 500. Проверено вживую двумя одновременными
+    // запросами: до этой ветки победитель получал 200, а проигравший
+    // «Внутренняя ошибка» — при том что бронь существует, и клиент
+    // ушёл бы её оформлять заново.
+    if (idemKey && (err as { code?: string }).code === '23505') {
+      const found = await deps.db.tx(tenant.id, (c) =>
+        existingByIdemKey(c, tenant.id, idemKey))
+      if (found) return found
+    }
     throw mapDbError(err)
   }
+}
+
+/**
+ * Заказ, уже созданный по этому ключу идемпотентности.
+ *
+ * ⚠️ Ответ совпадает с ответом быстрого пути: клиент не должен
+ * различать «нашли сразу» и «проиграл гонку» — для него это одно и
+ * то же событие «заказ уже оформлен».
+ */
+async function existingByIdemKey(
+  c: import('pg').PoolClient, tenantId: string, idemKey: string,
+): Promise<{ code: string, status: string, repeated: true } | null> {
+  const { rows } = await c.query<{ public_code: string, status: string }>(
+    `SELECT public_code, status FROM rental_order
+     WHERE tenant_id = $1 AND price_breakdown->>'idemKey' = $2`,
+    [tenantId, idemKey],
+  )
+  const hit = rows[0]
+  return hit ? { code: hit.public_code, status: hit.status, repeated: true } : null
 }

@@ -20,7 +20,7 @@ const Fields = {
   seasonFromMonth: v.optional(v.nullable(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(12)))),
   seasonToMonth: v.optional(v.nullable(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(12)))),
 }
-const Body = v.variant('action', [
+export const BranchesBody = v.variant('action', [
   v.object({ action: v.literal('create'), ...Fields }),
   // Клонирование и профили (17.24).
   v.object({
@@ -49,7 +49,7 @@ export async function postBranches(
   deps: Deps,
 ) {
   // Филиалы — настройка тенанта: владелец и админ.
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(BranchesBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные филиала')
   const input = parsed.output
 

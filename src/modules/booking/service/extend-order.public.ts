@@ -13,7 +13,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { locateByToken } from '~/domain/orders/order-token'
 import { extendRental } from '~/domain/core/exceptions'
 
-const Body = v.object({
+export const ExtendBody = v.object({
   newEndsAt: v.pipe(v.string(), v.isoTimestamp()),
 })
 
@@ -30,7 +30,7 @@ export async function postExtend(
   const hit = await deps.db.txAnonymous((c) => locateByToken(c, token, 'view'))
   if (!hit) throw apiError('NOT_FOUND', 'Ссылка недействительна или истекла')
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ExtendBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Укажите новую дату окончания')
 
   try {

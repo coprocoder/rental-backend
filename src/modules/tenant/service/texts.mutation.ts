@@ -12,7 +12,7 @@ import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { publishVersion } from '~/domain/admin/texts'
 
-const Body = v.object({
+export const TextsBody = v.object({
   kind: v.picklist(['offer', 'privacy', 'rules']),
   // Верхняя граница щедрая: оферта на несколько страниц — норма.
   body: v.pipe(v.string(), v.minLength(1), v.maxLength(100_000)),
@@ -28,7 +28,7 @@ export async function postTexts(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(TextsBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Текст не может быть пустым')
 
   try {

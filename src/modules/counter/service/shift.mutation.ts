@@ -12,7 +12,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { canAccessBranch } from '~/domain/core/auth'
 import { closeShift, openShift, shiftSummary } from '~/domain/counter/shift'
 
-const Body = v.variant('action', [
+export const ShiftBody = v.variant('action', [
   v.object({
     action: v.literal('open'),
     branchId: v.pipe(v.string(), v.uuid()),
@@ -36,7 +36,7 @@ export async function postShift(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ShiftBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные смены')
   const input = parsed.output
 

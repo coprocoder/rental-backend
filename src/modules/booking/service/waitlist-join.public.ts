@@ -19,7 +19,7 @@ import { canonicalPhone } from '~/common/utils/phone'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { addToWaitlist } from '~/domain/availability/waitlist'
 
-const Body = v.object({
+export const WaitlistJoinBody = v.object({
   tenant: v.pipe(v.string(), v.minLength(1)),
   branchId: v.pipe(v.string(), v.uuid()),
   variantId: v.pipe(v.string(), v.uuid()),
@@ -58,7 +58,7 @@ export interface PostWaitlistInput {
 }
 
 export async function postWaitlist(req: PostWaitlistInput, deps: Deps) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(WaitlistJoinBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', 'Проверьте заполненные поля', {
       issues: parsed.issues.map((i) => i.path?.map((p) => p.key).join('.')),

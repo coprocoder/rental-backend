@@ -18,7 +18,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { locateByToken, markTokenUsed } from '~/domain/orders/order-token'
 import { transition } from '~/domain/core/order-lifecycle'
 
-const Body = v.optional(v.object({
+export const CancelBody = v.optional(v.object({
   /** Причина со стороны клиента — необязательна, но полезна для спроса. */
   reason: v.optional(v.pipe(v.string(), v.maxLength(500))),
 }))
@@ -34,7 +34,7 @@ export async function postCancel(
   deps: Deps,
 ) {
   const token = req.params.token ?? ''
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(CancelBody, req.body)
   const reason = parsed.success ? parsed.output?.reason : undefined
 
   const hit = await deps.db.txAnonymous((c) => locateByToken(c, token, 'cancel'))

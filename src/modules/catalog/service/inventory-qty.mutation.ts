@@ -15,7 +15,7 @@ import { canAccessBranch } from '~/domain/core/auth'
 import { adjustQuantity } from '~/domain/admin/admin'
 import { currentShift } from '~/domain/counter/shift'
 
-const Body = v.object({
+export const InventoryQtyBody = v.object({
   branchId: v.pipe(v.string(), v.uuid()),
   /** Одна позиция или сразу несколько — «все ботинки +1» (13.5.2). */
   items: v.pipe(v.array(v.object({
@@ -35,7 +35,7 @@ export async function postInventoryQty(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(InventoryQtyBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные')
   const input = parsed.output
 

@@ -15,7 +15,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { canAccessBranch, can } from '~/domain/core/auth'
 import { markNoShow, overdueCharge, transferOrder, writeOffVariant } from '~/domain/core/exceptions'
 
-const Body = v.variant('action', [
+export const IncidentBody = v.variant('action', [
   v.object({
     action: v.literal('no_show'),
     orderId: v.pipe(v.string(), v.uuid()),
@@ -53,7 +53,7 @@ export async function postIncident(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(IncidentBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные действия')
   const input = parsed.output
 

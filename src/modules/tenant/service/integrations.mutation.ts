@@ -16,7 +16,7 @@ import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.object({
+export const IntegrationsBody = v.object({
   provider: v.picklist(['telegram', 'max']),
   token: v.pipe(v.string(), v.maxLength(200)),
 })
@@ -31,7 +31,7 @@ export async function postIntegrations(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(IntegrationsBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные')
   const { token } = parsed.output
 

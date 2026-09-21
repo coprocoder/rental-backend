@@ -22,7 +22,7 @@ import { verdictOn } from '~/common/utils/contrast'
 
 const Hex = v.pipe(v.string(), v.regex(/^#[0-9a-f]{6}$/i, 'Цвет — six-значный HEX вида #0b6b5e'))
 
-const Body = v.object({
+export const ThemeBody = v.object({
   brand: v.optional(Hex),
   brandSubtle: v.optional(Hex),
   bg: v.optional(Hex),
@@ -41,7 +41,7 @@ export async function postTheme(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ThemeBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Проверьте цвета')
   }

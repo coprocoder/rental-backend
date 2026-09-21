@@ -21,7 +21,7 @@ import { hashPassword } from '~/domain/core/auth'
 import { issueApiKey } from '~/domain/platform/api-key'
 import { createDemoInventory } from '~/domain/admin/demo'
 
-const Body = v.object({
+export const RegisterBody = v.object({
   slug: v.pipe(v.string(), v.regex(/^[a-z0-9-]{3,40}$/)),
   name: v.pipe(v.string(), v.minLength(2), v.maxLength(120)),
   ownerName: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
@@ -42,7 +42,7 @@ export async function postRegister(
   req: PostRegisterInput,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(RegisterBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте поля регистрации')
   const input = parsed.output
 

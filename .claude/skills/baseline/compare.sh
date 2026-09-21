@@ -6,7 +6,7 @@
 # вопросы, и второй важнее: переезд не должен ничего менять.
 set -euo pipefail
 
-BASE_DIR="${BASELINE_DIR:-../rental/test/api/baseline}"
+BASE_DIR="${BASELINE_DIR:-test/fixtures/baseline}"
 NEW="${NEW_BASE:-http://localhost:3200}"
 OLD="${OLD_BASE:-http://localhost:3100}"
 

@@ -16,7 +16,7 @@ import {
 } from '~/domain/inventory/items'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.variant('action', [
+export const ItemsBody = v.variant('action', [
   v.object({
     action: v.literal('create'),
     variantId: v.pipe(v.string(), v.uuid()),
@@ -60,7 +60,7 @@ export async function postItems(
   req: PostItemsRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(ItemsBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте данные')
   const input = parsed.output
 

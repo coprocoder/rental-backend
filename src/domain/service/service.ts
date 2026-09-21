@@ -207,7 +207,22 @@ export async function itemHistory(
        LEFT JOIN staff st ON st.id = m.staff_id
        LEFT JOIN rental_order o ON o.id = m.order_id
       WHERE m.tenant_id = $1 AND m.item_id = $2
-      ORDER BY m.occurred_at DESC`,
+      -- ⚠️ Вторичный ключ обязателен: отправка в ремонт и возврат
+      -- из него происходят в ОДНОЙ транзакции и получают одинаковый
+      -- occurred_at. Без него порядок между ними не определён, и
+      -- история показывала «вернули из ремонта» ПЕРЕД «отправили
+      -- в ремонт» — примерно в одном прогоне из трёх. На стенде такие
+      -- совпадения есть: по три движения с одной меткой.
+      --
+      -- ⚠️ Сортируем по СМЫСЛУ события, а не по id: он случайный
+      -- (gen_random_uuid), он дал бы стабильный, но произвольный
+      -- порядок. Возврат из сервиса всегда позже отправки в него.
+      ORDER BY m.occurred_at DESC,
+               CASE m.kind
+                 WHEN 'from_service' THEN 0
+                 WHEN 'to_service' THEN 1
+                 ELSE 2
+               END`,
     [opts.tenantId, opts.itemId],
   )
 

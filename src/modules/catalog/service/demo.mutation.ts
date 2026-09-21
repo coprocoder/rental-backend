@@ -11,7 +11,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { createDemoInventory, deleteDemoInventory } from '~/domain/admin/demo'
 import { audit } from '~/domain/core/order-lifecycle'
 
-const Body = v.object({
+export const DemoBody = v.object({
   action: v.picklist(['create', 'delete']),
   branchId: v.optional(v.pipe(v.string(), v.uuid())),
 })
@@ -25,7 +25,7 @@ export async function postDemo(
   req: PostDemoRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(DemoBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте запрос')
 
   try {

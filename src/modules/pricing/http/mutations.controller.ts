@@ -8,7 +8,14 @@
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
 import { SESSION_COOKIE, requirePermission } from '~/kernel/session'
-import { postPriceRules } from '../service/price-rules.mutation'
+import * as v from 'valibot'
+import { documentRoute } from '~/transport/openapi/registry'
+import { postPriceRules, PriceRulesBody } from '../service/price-rules.mutation'
+
+documentRoute({ method: 'post', path: '/v1/admin/price-rules', scope: 'staff',
+  body: PriceRulesBody,
+  response: v.object({ id: v.pipe(v.string(), v.uuid()) }),
+  summary: 'Правила цены: тариф позиции на период, с проверкой пересечений' })
 
 export function registerPricingMutations(app: App, deps: Deps): void {
   app.post('/v1/admin/price-rules', async (httpReq) => {

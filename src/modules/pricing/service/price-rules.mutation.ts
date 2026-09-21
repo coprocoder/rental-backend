@@ -17,7 +17,7 @@ import {
   activeRule, archiveRule, closeRuleAt, insertRule,
 } from '~/modules/pricing/database/pricing.repository'
 
-const Body = v.variant('action', [
+export const PriceRulesBody = v.variant('action', [
   v.object({
     action: v.literal('create'),
     variantId: v.pipe(v.string(), v.uuid()),
@@ -77,7 +77,7 @@ export async function postPriceRules(
   req: PostPriceRulesRequest,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(PriceRulesBody, req.body)
   if (!parsed.success) throw apiError('VALIDATION_FAILED', 'Проверьте правило цены')
   const input = parsed.output
 

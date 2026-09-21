@@ -8,6 +8,7 @@
 import * as v from 'valibot'
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
+import { documentRoute } from '~/transport/openapi/registry'
 import { parse } from '~/transport/validate'
 import { apiError } from '~/kernel/errors'
 import { requireSession, SESSION_COOKIE } from '~/kernel/session'
@@ -37,6 +38,58 @@ const LoginBody = v.object({
 const SwitchBody = v.object({
   pin: v.pipe(v.string(), v.minLength(4), v.maxLength(12)),
 })
+
+/**
+ * Кто сейчас работает.
+ *
+ * ⚠️ `features` и права — ТОЛЬКО чтобы не показывать недоступное.
+ * Границу держит сервер; клиенту здесь верить нельзя.
+ */
+const MeResponse = v.object({
+  name: v.string(),
+  role: v.string(),
+  branchIds: v.array(v.pipe(v.string(), v.uuid())),
+  /** Отличается от активного после переключения по PIN. */
+  sessionOwnerId: v.pipe(v.string(), v.uuid()),
+  tenantName: v.string(),
+  // ⚠️ Тема ОДНА на все интерфейсы: витрину, админку и стойку.
+  theme: v.record(v.string(), v.string()),
+  features: v.record(v.string(), v.boolean()),
+  planCode: v.string(),
+})
+
+/** Кто работает: имя, роль и доступные филиалы. Сверено вызовом. */
+const StaffIdentity = v.object({
+  name: v.string(),
+  role: v.string(),
+  /** Пусто у владельца и админа — им доступны все филиалы. */
+  branchIds: v.array(v.pipe(v.string(), v.uuid())),
+})
+
+documentRoute({ method: 'post', path: '/v1/staff/login', scope: 'staff',
+  body: LoginBody,
+  /**
+   * ⚠️ Сессия уходит КУКОЙ, а не в теле: токен в теле пришлось бы где-то
+   * хранить на клиенте, и он утёк бы в localStorage или в лог.
+   */
+  response: v.object({ staff: StaffIdentity }),
+  summary: 'Вход сотрудника по почте и паролю' })
+
+documentRoute({ method: 'post', path: '/v1/staff/logout', scope: 'staff',
+  response: v.object({ ok: v.literal(true) }),
+  summary: 'Выход: сессия гасится на сервере, кука снимается' })
+
+documentRoute({ method: 'post', path: '/v1/staff/switch', scope: 'staff',
+  body: SwitchBody,
+  /**
+   * ⚠️ Переключение по PIN — для ОДНОГО планшета на стойке: смена
+   * сотрудника не должна требовать пароля на глазах у очереди.
+   */
+  response: StaffIdentity,
+  summary: 'Переключение активного сотрудника по PIN на общем устройстве' })
+
+documentRoute({ method: 'get', path: '/v1/staff/me', scope: 'staff', response: MeResponse,
+  summary: 'Текущий сотрудник: роль, филиалы, тема и функции тарифа' })
 
 export function registerAccessRoutes(app: App, deps: Deps): void {
   app.get('/v1/staff/me', async (req) => {

@@ -19,7 +19,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { clearFlag, setFlag } from '~/domain/core/flags'
 import { SELF_SERVICE_FLAGS } from './admin-flags.service'
 
-const Body = v.object({
+export const FlagsBody = v.object({
   flag: v.picklist(['online_booking']),
   enabled: v.boolean(),
   reason: v.pipe(v.string(), v.minLength(3, 'Опишите причину'), v.maxLength(500)),
@@ -37,7 +37,7 @@ export async function postFlags(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(FlagsBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', parsed.issues[0]?.message ?? 'Проверьте запрос')
   }

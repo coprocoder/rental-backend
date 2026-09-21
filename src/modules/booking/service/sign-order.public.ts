@@ -15,7 +15,7 @@ import { apiError, mapDbError } from '~/kernel/errors'
 import { locateByToken } from '~/domain/orders/order-token'
 import { requestSignCode, signAgreement } from '~/domain/orders/agreement'
 
-const Body = v.optional(v.object({
+export const SignBody = v.optional(v.object({
   /** Без кода — запрос кода. С кодом — подписание. */
   code: v.optional(v.pipe(v.string(), v.minLength(4), v.maxLength(10))),
 }))
@@ -34,7 +34,7 @@ export async function postSign(
   const hit = await deps.db.txAnonymous((c) => locateByToken(c, token, 'view'))
   if (!hit) throw apiError('NOT_FOUND', 'Ссылка недействительна или истекла')
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(SignBody, req.body)
   const code = parsed.success ? parsed.output?.code : undefined
 
   try {

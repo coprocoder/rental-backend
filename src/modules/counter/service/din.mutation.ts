@@ -22,7 +22,7 @@ import * as v from 'valibot'
 import { apiError } from '~/kernel/errors'
 import { recommendDin } from '~/domain/fitting/din'
 
-const Body = v.object({
+export const DinBody = v.object({
   // Границы широкие намеренно: ребёнок 15 кг и крупный взрослый 150 —
   // оба реальны, а сузить их значит отказать настоящему клиенту.
   weight: v.pipe(v.number(), v.minValue(10), v.maxValue(200)),
@@ -41,7 +41,7 @@ export async function postDin(
   deps: Deps,
 ) {
 
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(DinBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', 'Нужен хотя бы вес — он ведущий параметр')
   }
