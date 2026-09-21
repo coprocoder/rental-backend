@@ -1,0 +1,21 @@
+{
+  "labeled": true,
+  "items": [
+    {
+      "id": "97d5ce92-a8b4-43ec-96f0-14b35e51c66f",
+      "labelCode": "BO-0001"
+    },
+    {
+      "id": "d7ad6a6e-c3bd-4acf-b11f-20ab64f6ea90",
+      "labelCode": "BO-0002"
+    },
+    {
+      "id": "5dcdce1f-ce6e-4751-9304-c20c2bd20ef8",
+      "labelCode": "BO-0003"
+    },
+    {
+      "id": "9fc14b61-8cbc-4461-a40c-d88a74fdf620",
+      "labelCode": "BO-0004"
+    }
+  ]
+}

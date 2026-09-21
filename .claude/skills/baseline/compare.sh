@@ -6,7 +6,7 @@
 # вопросы, и второй важнее: переезд не должен ничего менять.
 set -euo pipefail
 
-BASE_DIR="${BASELINE_DIR:-../rental/baseline}"
+BASE_DIR="${BASELINE_DIR:-../rental/test/fixtures/baseline}"
 NEW="${NEW_BASE:-http://localhost:3200}"
 OLD="${OLD_BASE:-http://localhost:3100}"
 
@@ -26,7 +26,39 @@ compare.sh <команда> [аргументы]
 USAGE
 }
 
-norm() { python3 -m json.tool --sort-keys "$1"; }
+# ⚠️ Конверт ошибки у h3 и у нового сервиса РАЗНЫЙ, и это намеренно:
+# h3 выносил клиенту `error: true`, statusMessage и СТЕК с абсолютными
+# путями файлов сервера. Сравнивать их дословно значит держать сверку
+# вечно красной на ответах-ошибках. Поэтому оба конверта приводятся к
+# одному виду — { error: { code, message } }, — и сверяется то, что
+# действительно является контрактом: код ошибки и текст человеку.
+norm() {
+  python3 - "$1" <<'PYEOF'
+import json, sys
+d = json.load(open(sys.argv[1]))
+if isinstance(d, dict) and d.get('error') is True:
+    inner = (d.get('data') or {}).get('error') or {}
+    d = {'error': {'code': inner.get('code'),
+                   'message': inner.get('message') or d.get('message')}}
+    if inner.get('details'):
+        d['error']['details'] = inner['details']
+elif isinstance(d, dict) and isinstance(d.get('error'), dict):
+    e = d['error']
+    d = {'error': {k: e[k] for k in ('code', 'message', 'details') if k in e}}
+print(json.dumps(d, sort_keys=True, indent=1, ensure_ascii=False))
+PYEOF
+}
+
+# ⚠️ Сессия нужна для 30 эндпоинтов из 38: админка и стойка. Без неё
+# сверка проверяла бы только публичный контур, то есть восьмую часть.
+COOKIES=""
+login() {
+  COOKIES="$(mktemp)"
+  curl -s -c "$COOKIES" -X POST "$NEW/api/v1/staff/login" \
+    -H 'content-type: application/json' \
+    -d '{"email":"owner@demo.local","password":"demo1234"}' -o /dev/null || true
+  grep -q rental_session "$COOKIES" 2>/dev/null || COOKIES=""
+}
 
 alive() {
   curl -sf -o /dev/null "$1/health" 2>/dev/null && return 0
@@ -42,7 +74,11 @@ cmd_one() {
     echo "    снять: compare.sh capture $name '<путь>'" >&2
     return 1
   fi
-  curl -s "$NEW$path" > "$tmp"
+  if [ -n "$COOKIES" ]; then
+    curl -s -b "$COOKIES" "$NEW$path" > "$tmp"
+  else
+    curl -s "$NEW$path" > "$tmp"
+  fi
   if diff <(norm "$base") <(norm "$tmp") > /dev/null 2>&1; then
     echo "  ✓ $name"
     rm -f "$tmp"; return 0
@@ -66,30 +102,26 @@ cmd_all() {
   alive "$NEW" || { echo "⚠️ Сервис $NEW не отвечает. Поднять: make dev" >&2; exit 1; }
   [ -d "$BASE_DIR" ] || { echo "⚠️ Каталога эталонов нет: $BASE_DIR" >&2; exit 1; }
 
+  login
   local pass=0 fail=0
   shopt -s nullglob
   for f in "$BASE_DIR"/*.json; do
     local name path
     name="$(basename "$f" .json)"
+    # ⚠️ Карта запросов лежит рядом с эталонами и сама эталоном не является.
+    [ "$name" = "urls" ] && continue
     # Имя файла кодирует запрос: public_catalog_tenant_demo → /api/v1/public/catalog?tenant=demo
-    path="$(python3 - "$name" <<'PY'
-import sys, re
-n = sys.argv[1]
-# первые сегменты до первого параметра — путь, остальное — query
-m = re.match(r'^(public|admin|counter|staff|platform)_([a-z-]+)(?:_(.*))?$', n)
-if not m:
-    print(''); raise SystemExit
-contour, res, rest = m.group(1), m.group(2), m.group(3) or ''
-q = ''
-if rest:
-    parts = rest.split('_')
-    pairs = [f"{parts[i]}={parts[i+1]}" for i in range(0, len(parts) - 1, 2)]
-    q = '?' + '&'.join(pairs)
-print(f"/api/v1/{contour}/{res}{q}")
-PY
+    path="$(python3 - "$name" "$BASE_DIR/urls.json" <<'PYEOF'
+import json, sys
+name, urls_path = sys.argv[1], sys.argv[2]
+try:
+    print(json.load(open(urls_path)).get(name, ''))
+except FileNotFoundError:
+    print('')
+PYEOF
 )"
     if [ -z "$path" ]; then
-      echo "  ? $name — имя не разбирается в запрос, сверить вручную"
+      echo "  ? $name — нет записи в urls.json, сверить вручную"
       continue
     fi
     if cmd_one "$name" "$path"; then pass=$((pass+1)); else fail=$((fail+1)); fi

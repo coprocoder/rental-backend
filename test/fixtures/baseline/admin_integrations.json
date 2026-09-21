@@ -1,0 +1,20 @@
+{
+  "telegram": {
+    "configured": false,
+    "tail": null,
+    "botUsername": null
+  },
+  "max": {
+    "configured": false,
+    "tail": null,
+    "botUsername": null
+  },
+  "payment": {
+    "configured": false,
+    "provider": "stub"
+  },
+  "fiscal": {
+    "configured": false,
+    "provider": "stub"
+  }
+}

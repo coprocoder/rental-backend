@@ -1,0 +1,49 @@
+{
+  "flags": [
+    {
+      "flag": "online_booking",
+      "title": "Онлайн-бронирование",
+      "enabled": true,
+      "overridden": false,
+      "reason": null,
+      "until": null,
+      "selfService": true
+    },
+    {
+      "flag": "notifications",
+      "title": "Уведомления клиентам",
+      "enabled": true,
+      "overridden": false,
+      "reason": null,
+      "until": null,
+      "selfService": false
+    },
+    {
+      "flag": "waitlist",
+      "title": "Лист ожидания",
+      "enabled": true,
+      "overridden": false,
+      "reason": null,
+      "until": null,
+      "selfService": false
+    },
+    {
+      "flag": "widget",
+      "title": "Встраиваемый виджет",
+      "enabled": true,
+      "overridden": false,
+      "reason": null,
+      "until": null,
+      "selfService": false
+    },
+    {
+      "flag": "reports",
+      "title": "Отчёты",
+      "enabled": true,
+      "overridden": false,
+      "reason": null,
+      "until": null,
+      "selfService": false
+    }
+  ]
+}

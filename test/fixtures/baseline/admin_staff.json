@@ -1,0 +1,52 @@
+{
+  "staff": [
+    {
+      "id": "ed970d19-6721-4716-a502-53617ab4ca00",
+      "email": "owner@demo.local",
+      "name": "Иван Владельцев",
+      "role": "owner",
+      "branch_ids": null,
+      "has_pin": true,
+      "locked_at": null,
+      "locked_reason": null,
+      "created_at": "2026-09-02T14:47:54.520Z"
+    },
+    {
+      "id": "760954de-27f3-49e4-a606-72c052c3c4e9",
+      "email": "admin@demo.local",
+      "name": "Анна Админова",
+      "role": "admin",
+      "branch_ids": null,
+      "has_pin": true,
+      "locked_at": null,
+      "locked_reason": null,
+      "created_at": "2026-09-02T14:47:54.520Z"
+    },
+    {
+      "id": "1a2f9fc5-32bc-4386-a219-f5cc93d2c3dc",
+      "email": "counter@demo.local",
+      "name": "Пётр Стойкин",
+      "role": "counter",
+      "branch_ids": [
+        "6653d9bb-8494-4501-9808-fc61a4d69d7a"
+      ],
+      "has_pin": true,
+      "locked_at": null,
+      "locked_reason": null,
+      "created_at": "2026-09-02T14:47:54.520Z"
+    },
+    {
+      "id": "e95ea95b-d784-4ab3-9b42-f7ae282d5ac7",
+      "email": "tech@demo.local",
+      "name": "Сергей Техников",
+      "role": "technician",
+      "branch_ids": [
+        "6653d9bb-8494-4501-9808-fc61a4d69d7a"
+      ],
+      "has_pin": true,
+      "locked_at": null,
+      "locked_reason": null,
+      "created_at": "2026-09-02T14:47:54.520Z"
+    }
+  ]
+}
