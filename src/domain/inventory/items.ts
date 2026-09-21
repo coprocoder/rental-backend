@@ -20,6 +20,7 @@
  */
 import type { PoolClient } from 'pg'
 import { apiError } from '~/kernel/errors'
+import { getLimits } from '~/domain/pricing/limits'
 import { localized, type I18nField } from '~/common/utils/i18n-field'
 
 export interface ItemBlackout {
@@ -298,7 +299,37 @@ export async function setCategoryTracking(
     [opts.categoryId, opts.tenantId, opts.tracking],
   )
 
-  if (opts.tracking !== 'labeled') return { tracking: opts.tracking, itemsCreated: 0 }
+  if (opts.tracking !== 'labeled') {
+    /**
+     * ⚠️ Возврат на счётчик ОБЯЗАН завести календарь наличия.
+     *
+     * При поимённом учёте ёмкость считается по единицам, и `pool_day`
+     * не читается вовсе. Если вариант завели уже как `labeled`, строк
+     * там нет — и после обратного перевода наличие считалось бы по
+     * пустому календарю: позиция мгновенно становится непродаваемой,
+     * тот же дефект 19.34 с другой стороны.
+     *
+     * Ёмкость берём из журнала движений: это и есть остаток на складе.
+     */
+    // ⚠️ Один день-якорь с актуальной ёмкостью, а не горизонт (19.43):
+    // строки на конкретные дни заводит бронь, их отсутствие означает
+    // «свободно всё». Ёмкость берём из журнала движений — это и есть
+    // остаток на складе.
+    const { maxAdvanceDays } = await getLimits(c, opts.tenantId)
+    await c.query(
+      `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+       SELECT $1, v.id, (current_date + $3::int)::date, 0,
+              GREATEST(COALESCE((SELECT SUM(m.qty) FROM movement m
+                                  WHERE m.variant_id = v.id
+                                    AND m.branch_id = v.branch_id), 0), 0)::int
+         FROM inventory_variant v
+        WHERE v.tenant_id = $1 AND v.category_id = $2 AND v.archived_at IS NULL
+       ON CONFLICT (variant_id, day)
+       DO UPDATE SET capacity = excluded.capacity`,
+      [opts.tenantId, opts.categoryId, maxAdvanceDays + 365],
+    )
+    return { tracking: opts.tracking, itemsCreated: 0 }
+  }
 
   // Остаток по журналу минус уже заведённые единицы — столько и не хватает.
   const { rows: variants } = await c.query<{ id: string, missing: string }>(

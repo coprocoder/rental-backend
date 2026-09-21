@@ -15,6 +15,7 @@ import type { PoolClient } from 'pg'
 import { apiError } from '~/kernel/errors'
 import { localized, type I18nField } from '~/common/utils/i18n-field'
 import { createItems } from '~/domain/inventory/items'
+import { getLimits } from '~/domain/pricing/limits'
 
 export interface TodayScreen {
   /** Выдачи, которые должны состояться сегодня. */
@@ -343,11 +344,43 @@ export async function adjustQuantity(
 
   // Ёмкость пула следует за количеством: иначе новые вещи нельзя
   // забронировать, а списанные система продолжит продавать.
+  //
+  // ⚠️ Календарь НЕ заполняется на горизонт вперёд (19.43). Строка
+  // `pool_day` заводится в момент брони; отсутствие строки значит
+  // «в этот день никто ничего не бронировал», то есть свободен весь
+  // склад. Раньше заполнялось 90–120 дней вперёд, и 95% строк хранили
+  // «забронировано 0» — заполнялось то, что почти никогда не нужно.
+  //
+  // ⚠️ Но ёмкость где-то хранить надо: её берёт и расчёт наличия, и
+  // создание строки при брони — из ПОСЛЕДНЕГО известного дня. Поэтому
+  // приход делает две вещи:
+  //   1) правит уже существующие дни (там могут быть брони);
+  //   2) держит один день-ЯКОРЬ в будущем с актуальной ёмкостью.
+  //
+  // ⚠️ Якорь ставится дальше горизонта бронирования (`maxAdvanceDays`):
+  // он должен оставаться «последним днём» при сортировке, иначе
+  // обычная бронь на дальнюю дату перебьёт его и ёмкость поедет.
+  const { maxAdvanceDays } = await getLimits(c, opts.tenantId)
+  const anchorDay = maxAdvanceDays + 365
+
+  // ⚠️ Якорь исключён: его правит следующий запрос. Без этого условия
+  // дельта применялась бы к нему ДВАЖДЫ — тест 19.34 «второй приход
+  // прибавляется к первому» это и поймал (11 вместо 8).
   await c.query(
     `UPDATE pool_day
-     SET capacity = GREATEST(0, capacity + $3)
-     WHERE tenant_id = $1 AND variant_id = $2 AND day >= current_date`,
-    [opts.tenantId, opts.variantId, opts.delta],
+        SET capacity = GREATEST(0, capacity + $3)
+      WHERE tenant_id = $1 AND variant_id = $2
+        AND day >= current_date
+        AND day <> (current_date + $4::int)::date`,
+    [opts.tenantId, opts.variantId, opts.delta, anchorDay],
+  )
+
+  await c.query(
+    `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+     VALUES ($1, $2, (current_date + $4::int)::date, 0, GREATEST(0, $3))
+     ON CONFLICT (variant_id, day)
+     DO UPDATE SET capacity = GREATEST(0, pool_day.capacity + $3)`,
+    [opts.tenantId, opts.variantId, opts.delta, anchorDay],
   )
 
   // ⚠️ Поступление при поимённом учёте обязано выдать номера: остаток

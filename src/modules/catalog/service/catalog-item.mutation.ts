@@ -23,6 +23,7 @@ import type { Session } from '~/kernel/session'
 import * as v from 'valibot'
 import { apiError, mapDbError } from '~/kernel/errors'
 import { audit } from '~/domain/core/order-lifecycle'
+import { getLimits } from '~/domain/pricing/limits'
 
 const Body = v.object({
   categoryId: v.pipe(v.string(), v.uuid()),
@@ -79,6 +80,32 @@ export async function postCatalogItem(
          makeCode(category.code), JSON.stringify({ ru: input.name }), mode],
       )
       const variantId = made[0]!.id
+
+      /**
+       * ⚠️ Календарь наличия: ОДИН день-якорь, а не горизонт.
+       *
+       * Наличие считается по `pool_day`, и позиции нужна известная
+       * ёмкость — иначе расчёт не от чего оттолкнуться (19.34).
+       * Но заполнять 90 дней вперёд не нужно: строка на конкретный
+       * день заводится в момент брони, а её отсутствие означает
+       * «никто не бронировал», то есть свободно всё (19.43).
+       *
+       * ⚠️ Якорь дальше горизонта бронирования: он обязан оставаться
+       * последним днём при сортировке, иначе обычная бронь на дальнюю
+       * дату перебьёт его и ёмкость поедет.
+       *
+       * ⚠️ Услуги пропускаем: у «заточки» нет склада, и ограничивать
+       * её ёмкостью значило бы придумать несуществующий дефицит.
+       */
+      if (category.code !== 'service') {
+        const { maxAdvanceDays } = await getLimits(c, session.tenantId)
+        await c.query(
+          `INSERT INTO pool_day (tenant_id, variant_id, day, qty_booked, capacity)
+           VALUES ($1, $2, (current_date + $3::int)::date, 0, 0)
+           ON CONFLICT (variant_id, day) DO NOTHING`,
+          [session.tenantId, variantId, maxAdvanceDays + 365],
+        )
+      }
 
       // Цена — бессрочное базовое правило с текущего момента.
       await c.query(

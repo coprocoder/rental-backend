@@ -18,7 +18,7 @@ import type { DayMode } from '~/common/contract/day-count'
 
 // ⚠️ Схема на границе, а не типы роута: Nitro проверяет типы только
 // ответов, но никогда тел запросов.
-const Body = v.object({
+export const QuoteBody = v.object({
   tenant: v.pipe(v.string(), v.minLength(1)),
   branchId: v.pipe(v.string(), v.uuid()),
   from: v.pipe(v.string(), v.isoTimestamp()),
@@ -52,7 +52,7 @@ export async function postQuote(
   req: PostQuoteInput,
   deps: Deps,
 ) {
-  const parsed = v.safeParse(Body, req.body)
+  const parsed = v.safeParse(QuoteBody, req.body)
   if (!parsed.success) {
     throw apiError('VALIDATION_FAILED', 'Неверные данные', {
       issues: parsed.issues.map((i) => ({ path: i.path?.map((p) => p.key).join('.'), message: i.message })),

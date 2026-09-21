@@ -14,6 +14,20 @@ import { getItemLookup } from '../service/item-lookup.service'
 import { getOrders } from '../service/orders.service'
 import { getShift } from '../service/shift.service'
 import { getUpsell } from '../service/upsell.service'
+import * as v from 'valibot'
+import { optionalId, parse } from '~/transport/validate'
+
+/**
+ * ⚠️ `?branchId=` (пустой фильтр филиала) уезжал в SQL как UUID и ронял
+ * экран стойки в 500. Пустая строка была ещё и falsy, поэтому проверку
+ * доступа к филиалу проскакивала молча — отказ приходил уже из базы.
+ */
+const OrdersQuery = v.object({
+  branchId: optionalId,
+  q: v.optional(v.string()),
+  // ⚠️ Сравнение с 'false' остаётся в сценарии: умолчание «сегодня».
+  today: v.optional(v.string()),
+})
 
 export function registerCounterRoutes(app: App, deps: Deps): void {
   app.get('/v1/counter/catalog', async (req) => {
@@ -34,7 +48,7 @@ export function registerCounterRoutes(app: App, deps: Deps): void {
   })
   app.get('/v1/counter/orders', async (req) => {
     const s = await requireSession(req.cookies[SESSION_COOKIE])
-    return getOrders(s, req.query as Record<string, unknown>, deps)
+    return getOrders(s, parse(OrdersQuery, req.query), deps)
   })
   app.get('/v1/counter/shift', async (req) => {
     const s = await requireSession(req.cookies[SESSION_COOKIE])

@@ -51,7 +51,7 @@ counter's future mobile app.
 ## Modules
 
 Vertical slices in `src/modules/<name>/` with `transport/ service/ domain/ database/` inside
-and **one** `<name>.public.ts` facade outside. Nine planned (`plans/01-МОДУЛИ.md`); ported
+and **one** `<name>.public.ts` facade outside. Nine planned (`docs/архитектура.md`); ported
 so far: `catalog`, `pricing`.
 
 ⚠️ **Write-ownership, read-freedom.** The textbook rule "each module owns its tables" was
@@ -63,7 +63,7 @@ in `pool_day` was written from six places, and they did.
 
 ## Adding an endpoint
 
-Six steps, in `plans/03-API.md`. The short version: valibot schema at the boundary →
+Six steps, in `docs/api.md`. The short version: valibot schema at the boundary →
 route → `Ctx` → service → explicit response shape.
 
 ⚠️ **The schema is not optional.** Fastify validates *responses*, never request bodies.
@@ -125,10 +125,9 @@ migrations still live in the Nuxt repo and are **not** duplicated here.
   boundaries, request path and tenant isolation, with Mermaid diagrams. Then the guides
   moved out of Docusaurus: `железные-правила`, `бд-и-инварианты`, `алгоритмы`, `api`,
   `адаптеры`. `docs/СОСТОЯНИЕ.md` says what is ported and what is not.
-- **`plans/`** — design decisions for what is **still ahead**: nine modules, data growth
-  and partitioning, replicas and the pooler, migration stages, defects found.
-  ⚠️ Kept because they are not implemented: 2 modules of 9, 1 endpoint of 80, no
-  partitioning, no replicas, three found defects unfixed.
+- ⚠️ **`plans/` is gone** (17 September 2026): the module, layer and migration plans are
+  done; the growth and load calculations moved to `docs/данные-и-рост.md` and
+  `docs/нагрузка-и-реплики.md`; the defects found live in TODO.
 - `src/*/CLAUDE.md` — устройство каждого каталога, загружаются сами.
 - `../rental/server/CLAUDE.md` — how the backend works *today*, inside Nuxt.
 - `../rental-docs/` — **product only**: the spec and the guides for shop owners and staff.

@@ -19,7 +19,13 @@ import type { Session } from '~/kernel/session'
 import QRCode from 'qrcode'
 import { listItems } from '~/domain/inventory/items'
 
-/** Экранирование для вставки в HTML: названия приходят от тенанта. */
+/**
+ * Экранирование для вставки в HTML: названия приходят от тенанта.
+ *
+ * ⚠️ Своя копия, а не импорт из `~/transport/html`: `transport` —
+ * верхний слой, сервисы в него не ходят (правило `transport-is-top`).
+ * Четыре строки дублирования дешевле дырки в границе слоёв.
+ */
 function esc(s: string): string {
   return s.replace(/[&<>"]/g, (ch) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch] as string))
