@@ -9,7 +9,7 @@ import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
 import * as v from 'valibot'
 import { documentRoute } from '~/transport/openapi/registry'
-import { SESSION_COOKIE, requirePermission, requireSession } from '~/kernel/session'
+import { SESSION_COOKIE, requirePermission } from '~/kernel/session'
 import { postDin, DinBody } from '../service/din.mutation'
 import { postIncident, IncidentBody } from '../service/incident.mutation'
 import { postIssue, IssueBody } from '../service/issue.mutation'
@@ -156,25 +156,31 @@ documentRoute({ method: 'post', path: '/v1/counter/incident', scope: 'staff',
   response: v.object({ ok: v.literal(true) }),
   summary: 'Происшествие на смене: поломка, утеря, просрочка' })
 
+/**
+ * ⚠️ Выдача, возврат, смена и выдача без брони закрыты правом
+ * `order.confirm` — см. разбор в `counter.controller.ts`. `din` остаётся
+ * на `din.record`: это единственное действие стойки, доступное технику,
+ * и именно он крепления проверяет. `stocktake` — на `inventory.manage`.
+ */
 export function registerCounterMutations(app: App, deps: Deps): void {
   app.post('/v1/counter/din', async (httpReq) => {
     const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'din.record')
     return postDin(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/incident', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postIncident(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/issue', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postIssue(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/return', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postReturn(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/shift', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postShift(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/stocktake', async (httpReq) => {
@@ -182,11 +188,11 @@ export function registerCounterMutations(app: App, deps: Deps): void {
     return postStocktake(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/upsell', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postUpsell(s, { body: httpReq.body }, deps)
   })
   app.post('/v1/counter/walk-in', async (httpReq) => {
-    const s = await requireSession(httpReq.cookies[SESSION_COOKIE])
+    const s = await requirePermission(httpReq.cookies[SESSION_COOKIE], 'order.confirm')
     return postWalkIn(s, { body: httpReq.body }, deps)
   })
 }

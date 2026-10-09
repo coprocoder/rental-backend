@@ -7,7 +7,7 @@
 import type { App } from '~/transport/types'
 import type { Deps } from '~/kernel/deps'
 import { documentRoute } from '~/transport/openapi/registry'
-import { SESSION_COOKIE, requireSession } from '~/kernel/session'
+import { SESSION_COOKIE, requirePermission } from '~/kernel/session'
 import { getCatalog } from '../service/catalog.service'
 import { getFreeItems } from '../service/free-items.service'
 import { getHistory } from '../service/history.service'
@@ -191,33 +191,47 @@ documentRoute({ method: 'get', path: '/v1/counter/upsell', scope: 'staff',
 documentRoute({ method: 'get', path: '/v1/counter/shift', scope: 'staff',
   response: ShiftResponse, summary: 'Открытая смена филиала и сводка дня' })
 
+/**
+ * ⚠️ Все роуты стойки закрыты правом `order.confirm`, а не сессией.
+ * Скрытый пункт меню — удобство; граница доступа — сервер. Раньше
+ * здесь стоял `requireSession`, и роль `technician`, у которой этого
+ * права нет, стойку в меню не видела, но выдачу через API выполнить
+ * могла.
+ *
+ * ⚠️ `catalog` закрыт тем же правом, хотя его зовут три экрана ВНЕ
+ * стойки (массовые операции, импорт инвентаря, смена). Это безопасно:
+ * их пункты меню стоят на `inventory.manage`, а всякая роль с этим
+ * правом имеет и `order.confirm`. Инвентарное право сюда поставить
+ * нельзя по обратной причине — у роли `counter` его нет, а каталог ей
+ * нужен для выдачи. Проверяется в `test/counter-guards.test.ts`.
+ */
 export function registerCounterRoutes(app: App, deps: Deps): void {
   app.get('/v1/counter/catalog', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getCatalog(s, req.query as Record<string, unknown>, deps)
   })
   app.get('/v1/counter/free-items', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getFreeItems(s, req.query as Record<string, unknown>, deps)
   })
   app.get('/v1/counter/history', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getHistory(s, req.query as Record<string, unknown>, deps)
   })
   app.get('/v1/counter/item-lookup', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getItemLookup(s, req.query as Record<string, unknown>, deps)
   })
   app.get('/v1/counter/orders', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getOrders(s, parse(OrdersQuery, req.query), deps)
   })
   app.get('/v1/counter/shift', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getShift(s, req.query as Record<string, unknown>, deps)
   })
   app.get('/v1/counter/upsell', async (req) => {
-    const s = await requireSession(req.cookies[SESSION_COOKIE])
+    const s = await requirePermission(req.cookies[SESSION_COOKIE], 'order.confirm')
     return getUpsell(s, req.query as Record<string, unknown>, deps)
   })
 }
